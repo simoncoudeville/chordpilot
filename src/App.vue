@@ -341,7 +341,7 @@ const VOICINGS = ['triad','7','add9','9','11','13']
 
 function defaultChord() {
     return {
-        mode: 'scale',
+        mode: 'free',
         // Scale-mode fields
         scale: 'C',
         scaleTypeScale: 'major',
@@ -475,7 +475,7 @@ const isEditDirty = computed(() => {
 
 const editChordOptions = computed(() => {
     const scale = editModel.value.scale
-    const type = editModel.value.scaleType
+    const type = editScaleType.value
     if (type === 'major') {
         const k = Key.majorKey(scale)
         return MAJOR_DEGREES.map((deg, i) => {
@@ -532,7 +532,7 @@ function openEdit(idx) {
     currentEditIndex.value = idx
     const pad = pads.value[idx]
     // Step 1: set scale or root and mode-specific fields directly without copying between modes
-    editModel.value.mode = pad.mode || 'scale'
+    editModel.value.mode = pad.mode || 'free'
     editModel.value.scale = pad.scale
     editModel.value.freeRoot = pad.freeRoot || 'C'
     editModel.value.scaleTypeScale = pad.scaleTypeScale
@@ -942,7 +942,11 @@ function startPreview(e) {
     for (const n of notesWithOctave) sel.ch.sendNoteOn(n)
     activePads.value['preview'] = { notes: notesWithOctave, outputId: sel.output.id, channel: sel.chNum }
     updateActiveKeys()
-    logMsg(`Preview: ${pad.scale} ${pad.scaleType} ${pad.degree} ${pad.voicing} ${pad.inversion} -> (${notesWithOctave.join(', ')}) on ${sel.output.name} ch${sel.chNum}`)
+    if (padLike.mode === 'free') {
+        logMsg(`Preview [Free]: ${padLike.freeRoot} ${padLike.scaleTypeFree} ${padLike.voicingFree} ${padLike.inversionFree} -> (${notesWithOctave.join(', ')}) on ${sel.output.name} ch${sel.chNum}`)
+    } else {
+        logMsg(`Preview: ${padLike.scale} ${padLike.scaleTypeScale} ${padLike.degree} ${padLike.voicingScale} ${padLike.inversionScale} -> (${notesWithOctave.join(', ')}) on ${sel.output.name} ch${sel.chNum}`)
+    }
 }
 
 function stopPreview(e) {
