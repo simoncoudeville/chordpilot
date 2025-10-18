@@ -1,0 +1,258 @@
+:root {
+    /* lightdark */
+    color-scheme: dark;
+
+    --black: #1d1d1d;
+    --green-100: #86A59A;
+    --green-200: #CDFFED;
+
+    --color-bg: var(--black);
+    --color-fg: var(--green-200);
+    --color-border: var(--green-100);
+
+    --radius: 1px;
+
+    --var-font-size: 10;
+
+    --space-unit: calc(8 / var(--var-font-size) * 1rem);
+    --space-0-5: calc(var(--space-unit) * 0.5);
+    --space-1: var(--space-unit);
+    --space-2: calc(var(--space-unit) * 2);
+    --space-3: calc(var(--space-unit) * 3);
+    --space-4: calc(var(--space-unit) * 4);
+    --space-5: calc(var(--space-unit) * 5);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    color: var(--color-fg);
+    text-transform: uppercase;
+    
+    &:focus-visible {
+        outline: 1px solid var(--color-fg);
+        outline-offset: 0px;
+        border-color: var(--color-fg);
+    }
+}
+
+/* Keep flat accidental as lowercase within labels */
+.acc-flat {
+    text-transform: none;
+}
+
+html {
+    /* font-family: 'iA Writer Duospace', monospace; */
+    /* font-family: "DotGothic16", sans-serif; */
+    font-family: "Departure Mono", sans-serif;
+    font-size: calc(var(--var-font-size)/16 * 100%);
+    line-height: 1.6;
+    background-color: var(--color-bg);
+}
+
+body {
+    margin: 0;
+    padding: var(--space-1);
+}
+
+h2 {
+    font-size: 1rem;
+}
+
+select {
+    display: block;
+    width: 100%;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font: inherit;
+    line-height: inherit;
+    /* appearance: none; */
+    /* padding: 0; */
+    height: var(--space-2);
+}
+
+button {
+    /* reset button styles */
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+dialog {
+    width: 100%;
+    max-width: 400px;
+    margin: auto;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+
+    &::backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+}
+
+.dialog-body {
+    display: grid;
+    gap: var(--space-2);
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-1);
+}
+
+.top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    justify-content: space-between;
+    margin-bottom: var(--space-1);
+}
+
+.top-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.midi-status-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.pads {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-1);
+}
+
+.pad {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-0-5);
+}
+
+/* Prevent text selection and long-press selection on play buttons */
+.pad-play {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none; /* iOS Safari */
+	touch-action: none; /* let pointer events control gestures */
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    text-align: left;
+    padding: var(--space-1);
+    min-height: calc(var(--space-5) * 1.5);
+    vertical-align: top;
+    display: flex;
+
+    &:active {
+        /* background-color: var(--color-fg);
+        color: var(--color-bg); */
+        border-color: var(--color-fg);
+    }
+
+    &:disabled {        
+        border-color: var(--color-border);
+    }
+}
+
+/* --- Tiny piano keyboard (uses existing root variables) --- */
+.keyboard {
+    /* Tiny size following the Figma frame */
+    --key-w: calc(6 / var(--var-font-size) * 1rem);      /* white key width */
+    --key-h: calc(16 / var(--var-font-size) * 1rem);     /* white key height */
+    --black-w: calc(5 / var(--var-font-size) * 1rem);    /* black key width */
+    --black-h: calc(9 / var(--var-font-size) * 1rem);    /* black key height */
+    --gap: calc(1 / var(--var-font-size) * 1rem);        /* spacing between white keys */
+
+    position: relative;
+    display: inline-block;
+    width: calc(var(--key-w) * 7 + var(--gap) * 6);
+    height: var(--key-h);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.key {
+        background: var(--green-100);
+}
+
+.key-played {
+    background: var(--green-200);
+}
+
+/* White keys (7 stripes) */
+.keyboard .white {
+    position: absolute;
+    top: 0;
+    width: var(--key-w);
+    height: var(--key-h);
+}
+
+/* Map C D E F G A B positions */
+.keyboard .key-c { left: calc((var(--key-w) + var(--gap)) * 0); }
+.keyboard .key-d { left: calc((var(--key-w) + var(--gap)) * 1); }
+.keyboard .key-e { left: calc((var(--key-w) + var(--gap)) * 2); }
+.keyboard .key-f { left: calc((var(--key-w) + var(--gap)) * 3); }
+.keyboard .key-g { left: calc((var(--key-w) + var(--gap)) * 4); }
+.keyboard .key-a { left: calc((var(--key-w) + var(--gap)) * 5); }
+.keyboard .key-b { left: calc((var(--key-w) + var(--gap)) * 6); }
+
+/* Black keys overlay */
+.keyboard .key-black {
+    position: absolute;
+    top: 0;
+    width: var(--black-w);
+    height: var(--black-h);
+    border: 1px solid var(--black);
+    border-top-width: 0; /* match figma: no top border */
+}
+
+/* Place black keys between the correct whites */
+/* Center black keys in the gap between adjacent whites */
+.keyboard .key-db { left: calc((1 * var(--key-w) + 0 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-eb { left: calc((2 * var(--key-w) + 1 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+/* no black key between E and F */
+.keyboard .key-gb { left: calc((4 * var(--key-w) + 3 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-ab { left: calc((5 * var(--key-w) + 4 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-bb { left: calc((6 * var(--key-w) + 5 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+
+.edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-1);
+    align-items: center;
+}
+
+/* Utility to keep original casing (e.g., Dm, Bb) despite global uppercase */
+.preserve-case {
+    text-transform: none;
+}
+
+/* Dialog selects should preserve original casing (e.g., Bb) */
+/* Only chord select should preserve note casing (e.g., Bb). Keep other selects uppercase */
+.edit-grid .select-chord,
+.edit-grid .select-chord option {
+    text-transform: none;
+}
+
+/* Preserve original casing for the Scale select as well (e.g., Bb) */
+.edit-grid .select-scale,
+.edit-grid .select-scale option {
+    text-transform: none;
+}
