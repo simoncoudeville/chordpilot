@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
     plugins: [vue()],
+    // Ensure correct asset paths when hosted at https://<user>.github.io/chordpilot/
+    base: '/chordpilot/',
     server: {
         host: true,
         port: 3000,
