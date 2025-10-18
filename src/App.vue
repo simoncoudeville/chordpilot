@@ -18,7 +18,7 @@
             <p class="preserve-case" v-html="nowPlayingHtml"></p>
         </div>
         <div class="midi-status-container">
-            <span :class="statusClass">{{ statusDisplay }}</span>
+            <span :class="statusClass"><span class="midi-status-symbol midi-status-symbol--not-connected">□</span> <span class="midi-status-symbol midi-status-symbol--connected">■</span> <span class="midi-status-message">{{ statusDisplay }}</span></span>
             <template v-if="!permissionAllowed && !permissionPrompt">
                 <button @click="requestMidiPermission">Allow MIDI</button>
             </template>
@@ -49,23 +49,23 @@
     <dialog ref="editDialog">
         <form class="dialog-body" method="dialog" @submit.prevent>
             <h2 class="dialog-title">Edit Pad {{ currentEditIndex + 1 }}</h2>
-            <div>Mode
-                <div>
-                    <label><input type="radio" name="mode-chooser" v-model="editModel.mode" value="scale" /> Scale</label>
-                    <label><input type="radio" name="mode-chooser" v-model="editModel.mode" value="free" /> Free</label>
-                </div>
+            
+            <div class="toggle-buttons">
+                <label class="toggle-button"><input class="toggle-button-input" type="radio" name="mode-chooser" v-model="editModel.mode" value="scale" /><span class="toggle-button-checked">[</span> Scale mode <span class="toggle-button-checked">]</span></label>
+                <label class="toggle-button"><input class="toggle-button-input" type="radio" name="mode-chooser" v-model="editModel.mode" value="free" /><span class="toggle-button-checked">[</span> Free mode <span class="toggle-button-checked">]</span></label>
             </div>
+        
             <div class="dialog-content edit-grid">
                 <template v-if="editModel.mode === 'scale'">
                     <label>Scale
-                        <select v-model="editModel.scale" class="select-scale">
+                        <select v-model="editModel.scale" class="preserve-case select-scale">
                             <option v-for="opt in MAJOR_KEY_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                         </select>
                     </label>
                 </template>
                 <template v-else>
                     <label>Root
-                        <select v-model="editModel.freeRoot" class="select-scale">
+                        <select v-model="editModel.freeRoot" class="preserve-case select-scale">
                             <option v-for="opt in MAJOR_KEY_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                         </select>
                     </label>
@@ -78,16 +78,16 @@
                 </label>
                 <template v-if="editModel.mode === 'scale'">
                     <label>Chord
-                        <select v-model="editModel.degree" class="select-chord">
+                        <select v-model="editModel.degree" class="preserve-case select-chord">
                             <option v-for="ch in editChordOptions" :key="ch.degree" :value="ch.degree">
                                 {{ ch.degree }} — {{ ch.display }}
                             </option>
                         </select>
                     </label>
                 </template>
-                <label>Voicing
+                <label>Extensions
                     <select v-model="editVoicing">
-                        <option v-for="v in VOICINGS" :key="v" :value="v">{{ v }}</option>
+                        <option v-for="v in allowedVoicingsForChord(editScaleType)" :key="v" :value="v">{{ v }}</option>
                     </select>
                 </label>
                 <label>Inversion
@@ -101,17 +101,17 @@
                     </select>
                 </label>
             </div>
+            <button
+                type="button"
+                class="preview"
+                :disabled="!permissionAllowed || !midiEnabled"
+                @pointerdown.prevent.stop="startPreview($event)"
+                @pointerup.prevent.stop="stopPreview($event)"
+                @pointerleave.prevent.stop="stopPreview($event)"
+                @pointercancel.prevent.stop="stopPreview($event)"
+            >♫ Preview</button>
             <div class="dialog-buttons">
                 <button type="button" @click="closeEdit">Cancel</button>
-                <button
-                    type="button"
-                    class="preview"
-                    :disabled="!permissionAllowed || !midiEnabled"
-                    @pointerdown.prevent.stop="startPreview($event)"
-                    @pointerup.prevent.stop="stopPreview($event)"
-                    @pointerleave.prevent.stop="stopPreview($event)"
-                    @pointercancel.prevent.stop="stopPreview($event)"
-                >Preview</button>
                 <button type="button" @click="saveEdit" :disabled="!isEditDirty">Save</button>
             </div>
         </form>
@@ -133,7 +133,7 @@
                 </label>
             </div>
             <div class="dialog-buttons">
-                <button type="button" @click="closeMidiDialog">Cancel</button>
+                <button type="button" @click="closeMidiDialog">Close</button>
                 <button type="button" @click="saveMidiDialog" :disabled="!isMidiDirty">Save</button>
             </div>
         </form>
@@ -337,7 +337,26 @@ const MAJOR_KEY_OPTIONS = [
 ]
 const MAJOR_DEGREES = ['I','ii','iii','IV','V','vi','vii°']
 const MINOR_DEGREES = ['i','ii°','III','iv','v','VI','VII'] // natural minor
-const VOICINGS = ['triad','7','add9','9','11','13']
+// Subset of voicings currently implemented in playback; used to filter UI options
+const SUPPORTED_VOICINGS = ['triad','add2','6','7','add9','9','11','13','sus2','sus4']
+
+// Valid voicings per chord family; filtered to those implemented in SUPPORTED_VOICINGS
+function allowedVoicingsForChord(chordType) {
+    const t = String(chordType || '').toLowerCase()
+    let list = ['triad']
+    if (t === 'major' || t === 'minor') {
+        list = ['triad','add2','add9','6','7','9','11','13','sus2','sus4']
+    } else if (t === 'dominant') {
+        list = ['7','9','11','13','7sus4','7alt']
+    } else if (t === 'diminished') {
+        list = ['triad','7']
+    } else if (t === 'augmented') {
+        list = ['triad','add9','maj7']
+    } else {
+        list = ['triad']
+    }
+    return list.filter(v => SUPPORTED_VOICINGS.includes(v))
+}
 
 function defaultChord() {
     return {
@@ -580,10 +599,18 @@ function chordDisplay(pad) {
         const keyInfo = type === 'major' ? Key.majorKey(pad.scale) : Key.minorKey(pad.scale).natural
         triadSymbol = keyInfo?.triads?.[idx] || pad.degree
     }
+    // For sus chords, ignore m/maj quality in display and show e.g. Dsus2
+    if (v === 'sus2' || v === 'sus4') {
+        const info = Chord.get(triadSymbol)
+        const rootPc = info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : '') || ''
+        return `${rootPc}${v}`
+    }
     if (v === 'triad') return triadSymbol
     let suffix = ''
     if (v === '7') suffix = '7'
     else if (v === 'add9') suffix = 'add9'
+    else if (v === 'add2') suffix = 'add2'
+    else if (v === '6') suffix = '6'
     else if (v === '9' || v === '11' || v === '13') suffix = v
     return `${triadSymbol}${suffix}`
 }
@@ -815,7 +842,7 @@ function computeChordNotesFor(pad) {
         const st = pad.scaleTypeFree
         const triadSymbol = st === 'minor' ? `${root}m` : `${root}`
         const seventhSymbol = st === 'minor' ? `${root}m7` : `${root}maj7`
-        baseSymbol = (voicing === 'triad' || voicing === 'add9') ? triadSymbol : seventhSymbol
+        baseSymbol = (['triad','add2','add9','6','sus2','sus4'].includes(voicing)) ? triadSymbol : seventhSymbol
     } else {
         const st = pad.scaleTypeScale
         const idx = degreeIndex(pad.degree, st)
@@ -823,12 +850,34 @@ function computeChordNotesFor(pad) {
         const keyInfo = st === 'major' ? Key.majorKey(pad.scale) : Key.minorKey(pad.scale).natural
         const triadSymbol = keyInfo.triads[idx]
         const seventhSymbol = (keyInfo.chords && keyInfo.chords[idx]) || triadSymbol
-        baseSymbol = (voicing === 'triad' || voicing === 'add9') ? triadSymbol : seventhSymbol
+        baseSymbol = (['triad','add2','add9','6','sus2','sus4'].includes(voicing)) ? triadSymbol : seventhSymbol
     }
-    const baseNotes = Chord.get(baseSymbol).notes
+    let baseNotes = Chord.get(baseSymbol).notes
     const root = Chord.get(baseSymbol).tonic || baseNotes[0]
+    // Handle sus chords by replacing the 3rd with 2 or 4
+    if (voicing === 'sus2' || voicing === 'sus4') {
+        const tonic = root
+        if (tonic) {
+            const second = Note.transpose(tonic, '2M') // major 2nd from root
+            const fourth = Note.transpose(tonic, '4P') // perfect 4th from root
+            // Build triad tones explicitly to reliably replace the third
+            const fifth = Note.transpose(tonic, '5P')
+            baseNotes = voicing === 'sus2' ? [tonic, second, fifth] : [tonic, fourth, fifth]
+        }
+    }
+    // For add2, place the 2nd right above the root (not as a top add9)
+    if (voicing === 'add2' && root) {
+        const second = Note.transpose(root, '2M')
+        const rootPc = Note.pitchClass(root)
+        const secondPc = Note.pitchClass(second)
+        const pcs = baseNotes.map(n => Note.pitchClass(n))
+        const rest = pcs.filter(pc => pc !== rootPc && pc !== secondPc)
+        baseNotes = [rootPc, secondPc, ...rest]
+    }
     const tensions = []
     if (voicing === 'add9') tensions.push('9M')
+    // add2 is handled by reordering baseNotes above; do not also append as a top tension
+    if (voicing === '6') tensions.push('6M')
     if (voicing === '9') tensions.push('9M')
     if (voicing === '11') tensions.push('9M','11P')
     if (voicing === '13') tensions.push('9M','11P','13M')

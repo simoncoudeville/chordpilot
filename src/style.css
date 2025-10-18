@@ -132,6 +132,27 @@ dialog {
     gap: var(--space-1);
 }
 
+.midi-status-message {
+    /* display: none; */
+
+    .enabled & {
+        display: none;
+    }
+}
+
+.midi-status-symbol {
+    display: none;
+}
+
+.pending .midi-status-symbol--not-connected {
+    display: inline;
+    /* color: var(--color-border) */
+}
+
+.enabled .midi-status-symbol--connected {
+    display: inline;
+}
+
 .pads {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -196,6 +217,39 @@ dialog {
     background: var(--green-200);
 }
 
+.toggle-buttons {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-1);
+}
+
+.toggle-button-input {
+    /* hide accessible */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+
+.toggle-button {
+    color: var(--color-border);
+}
+
+.toggle-button-checked {
+    display: none;
+}
+
+.toggle-button:has(.toggle-button-input:checked) {
+    color: var(--color-fg);
+
+    .toggle-button-checked {
+        display: inline;
+    }
+}
+
 /* White keys (7 stripes) */
 .keyboard .white {
     position: absolute;
@@ -243,16 +297,9 @@ dialog {
 .preserve-case {
     text-transform: none;
 }
-
-/* Dialog selects should preserve original casing (e.g., Bb) */
-/* Only chord select should preserve note casing (e.g., Bb). Keep other selects uppercase */
-.edit-grid .select-chord,
-.edit-grid .select-chord option {
+/* Ensure options inside elements with preserve-case also keep casing */
+.preserve-case option {
     text-transform: none;
 }
 
-/* Preserve original casing for the Scale select as well (e.g., Bb) */
-.edit-grid .select-scale,
-.edit-grid .select-scale option {
-    text-transform: none;
-}
+/* Remove select-specific casing overrides in favor of reusable utility */
