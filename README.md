@@ -1,107 +1,93 @@
-# MIDI Test (Vite + WebMIDI + WebMidi.js)
+# Chordpilot (Vite + Vue 3 + WebMIDI)
 
-This is a tiny Web MIDI test app using Vite and the `webmidi` library. It lists your MIDI outputs, lets you send chords (e.g., Cm9) to your synth or DAW.
+Chordpilot is a browser-based chord pad tool for quickly auditioning and sending harmonies to your synths or DAW over MIDI. It uses WebMidi.js for MIDI I/O and Tonal.js for music-theory utilities.
 
-## Features
+## Highlights
 
-- Connect/permission flow for Web MIDI
-- Live list of outputs (with id/state/connection)
-- Output selection + channel selection
-- Play Cm9 chord button
-- Panic (All Notes Off + Sustain Off)
-- Rescan devices and live hot‑plug updates
+- Two editing modes per pad
+  - Free mode: choose any Root (C#/Db style labels), Type (major/minor), Voicing (triad/7/add9/9/11/13), Inversion, and Octave.
+  - Scale mode: choose a musical Key and a diatonic Chord by degree (I, ii, …) with the same Voicing/Inversion/Octave options.
+- Preview: press-and-hold audition while editing a pad.
+- Notation that makes sense: enharmonic display follows the chosen key (e.g., G#/Ab), with lowercase flats in UI text.
+- Live keyboard: keys light up while notes are held.
+- MIDI settings: pick Output + Channel; your choice is remembered.
+- Persistence: all pads and MIDI settings are saved to localStorage and restored on load.
 
 ## Requirements
 
-- Modern browser with Web MIDI support (Chrome/Edge recommended)
-- HTTPS (or `localhost`) is required for Web MIDI
-- For mobile devices, use ngrok or localhost.run for a trusted HTTPS tunnel
+- A browser with Web MIDI support (Chrome/Edge recommended).
+- HTTPS (or `http://localhost`) is required for Web MIDI. For phones/tablets, use an HTTPS tunnel like ngrok.
 
-## Run locally
+## Getting started
 
-1. Install deps
+1) Install dependencies
 
 ```bash
 npm install
 ```
 
-2. Start dev server
+2) Start the dev server
 
 ```bash
 npm run dev
 ```
 
-3. Open the app (on your computer)
+3) Open the app
 
-- Use the URL shown in the terminal (e.g., `https://192.168.86.xx:3000` or `https://192.168.86.xx:3001`).
-- Your browser may warn about a self-signed certificate—accept it once.
+- Use the URL in the terminal (localhost or your LAN IP).
+- Grant MIDI permission when prompted, then click “Connect MIDI” if needed.
+- Open “MIDI Settings” to choose your Output + Channel (saved afterwards).
 
-4. In the page
+## Using pads
 
-- Click "Connect MIDI" and Allow.
-- Pick Output port and Channel.
-- Click "Play Cm9" to send a chord.
-- Use Panic if notes hang.
+- Each pad can be edited (Edit button) and played (press and hold).
+- Mode
+  - Free: select Root and Type; set Voicing, Inversion, Octave.
+  - Scale: select Scale (Key) and Chord degree; set Voicing, Inversion, Octave.
+- Preview in the dialog auditions the current settings while held.
+- The pad label shows the chord (with slash bass for inversions when relevant), rendered with key-appropriate #/b.
 
-## Mobile access (phone/tablet)
+## Notation rules
 
-Web MIDI requires HTTPS. Your dev server uses a self‑signed certificate, which phones don’t trust by default. Use one of these options:
+- Scale select and Free root use Ableton-style labels (C#/Db) for clarity.
+- Flats render with a lowercase b in the UI (e.g., Bb) even under global uppercase styling.
+- “Now playing” notes are normalized to the current key/root for clean display.
 
-### Option A: ngrok (quickest)
+## MIDI notes
 
-1. Verify your ngrok account email: https://dashboard.ngrok.com/user/settings
-2. Start your dev server (keep it running):
+- WebMidi.js handles device detection and output/channel routing.
+- The app prevents stuck notes by tracking active pads; preview and pad presses send note off on release.
 
-```bash
-npm run dev
-```
+## Persisted settings
 
-3. In a new terminal, tunnel to your current dev URL (example):
-
-```bash
-ngrok http https://192.168.86.54:3001
-```
-
-4. Open the HTTPS URL from ngrok (e.g., `https://...ngrok-free.app`) on your phone.
-
-Notes:
-- Keep both terminals running (Vite and ngrok).
-- The URL changes each ngrok session (unless on a paid plan).
-- If you see an interstitial, tap "Visit Site".
-
-If you don’t want to verify ngrok right now, you can use an alternative like `localhost.run`:
-
-```bash
-ssh -R 80:192.168.86.54:3001 nokey@localhost.run
-```
-
-It will print a public HTTPS URL you can open on your phone.
-
-## Troubleshooting device detection
-
-- Only IAC Driver shows up:
-  - Ensure your synth is in USB MIDI mode (not storage/audio-only).
-  - macOS: open Audio MIDI Setup > Show MIDI Studio; confirm the device has input/output ports and is online.
-  - Try different cable/USB port; avoid problematic hubs.
-  - Temporarily disable the IAC Driver to reduce confusion.
-
-- No permission prompt or denied:
-  - Click the lock icon in the browser address bar to reset site permissions.
-  - The page shows Permission status—ensure it’s "granted".
-
-- Hot plug not reflected:
-  - Use the Rescan button.
-  - Unplug/replug the device; the list should update.
+- Pads and MIDI settings are stored in localStorage under:
+  - `midi-test:pads`
+  - `midi-test:midi-settings`
 
 ## Project structure
 
-- `index.html` – Entry HTML
-- `src/App.vue` – All UI and MIDI logic (Vue)
-- `src/main.js` – Vue entrypoint
+- `index.html` – App entry
+- `src/App.vue` – Main UI, music logic, and MIDI interactions
+- `src/main.js` – Vue bootstrap
+- `src/style.css` – Global styles (with flat-accidental overrides)
 - `vite.config.js` – Vite config
 
-## Notes
+## Mobile access (optional)
 
-- The “Play Cm9” button currently sends the chord `C3, Eb3, G3, Bb3, D4` on the selected output/channel for 1s.
-- Panic sends CC 123 (All Notes Off) and CC 64 (Sustain Off) on the selected output/channel.
-- Want different chord voicings or a virtual keyboard? Open an issue or adjust `src/App.vue` where the chord array is defined.
+If you want to control hardware from your phone/tablet on the same network, tunnel the dev server over HTTPS (e.g., ngrok):
+
+```bash
+ngrok http http://<your-local-ip>:3000
+```
+
+Open the ngrok HTTPS URL on your phone, grant MIDI permission, and connect to a portable synth via USB/host if supported.
+
+## Troubleshooting
+
+- No devices or permission denied: reset site permissions (lock icon), then reload and allow MIDI.
+- Device doesn’t appear: check macOS Audio MIDI Setup, try a different cable/port, or avoid problematic hubs.
+- Stuck notes: release the pad/preview; leaving or closing the page sends note off for any sustained notes.
+
+## License
+
+MIT
