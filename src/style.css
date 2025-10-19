@@ -12,15 +12,18 @@
 
     --radius: 1px;
 
-    --var-font-size: 10;
+    --font-size: 12;
+    --font-size-sm: 10;
 
-    --space-unit: calc(8 / var(--var-font-size) * 1rem);
+    --space-unit: calc(9 / var(--font-size) * 1rem);
     --space-0-5: calc(var(--space-unit) * 0.5);
     --space-1: var(--space-unit);
     --space-2: calc(var(--space-unit) * 2);
     --space-3: calc(var(--space-unit) * 3);
     --space-4: calc(var(--space-unit) * 4);
     --space-5: calc(var(--space-unit) * 5);
+    /* Responsive pad sizing */
+    --pad-min: 109px;
 }
 
 /* Webfont: Departure Mono */
@@ -46,17 +49,12 @@
     }
 }
 
-/* Keep flat accidental as lowercase within labels */
-.acc-flat {
-    text-transform: none;
-}
-
 html {
     /* font-family: 'iA Writer Duospace', monospace; */
     /* font-family: "DotGothic16", sans-serif; */
     font-family: "Departure Mono", sans-serif;
-    font-size: calc(var(--var-font-size)/16 * 100%);
-    line-height: 1.6;
+    font-size: calc(var(--font-size)/16 * 100%);
+    line-height: 1.5;
     background-color: var(--color-bg);
 }
 
@@ -80,7 +78,9 @@ select {
     line-height: inherit;
     /* appearance: none; */
     /* padding: 0; */
-    height: var(--space-2);
+    height: var(--space-3);
+    padding: 0 var(--space-0-5);
+    margin-top: var(--space-0-5);
 }
 
 button {
@@ -115,10 +115,25 @@ dialog {
     gap: var(--space-2);
 }
 
+.dialog-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: calc(var(--space-1) * -1);
+    margin-bottom: calc(var(--space-1) * -1);
+
+}
+
+.dialog-close {
+    position: relative;
+    margin-right: calc(var(--space-1) * -1);
+    padding: var(--space-1);
+}
+
 .dialog-buttons {
     display: flex;
     justify-content: flex-end;
-    gap: var(--space-1);
+    gap: var(--space-2);
 }
 
 .top {
@@ -164,7 +179,8 @@ dialog {
 
 .pads {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    /* Responsive columns: fill row with as many pads as fit, minimum width per pad */
+    grid-template-columns: repeat(auto-fit, minmax(var(--pad-min), 1fr));
     gap: var(--space-1);
 }
 
@@ -172,6 +188,13 @@ dialog {
     display: flex;
     flex-direction: column;
     gap: var(--space-0-5);
+}
+
+.pad-buttons {
+    display: flex;
+    gap: var(--space-1);
+    justify-content: center;
+    /* font-size: calc(var(--font-size-sm) / var(--font-size) * 1rem); */
 }
 
 /* Prevent text selection and long-press selection on play buttons */
@@ -201,13 +224,27 @@ dialog {
     }
 }
 
+/* Prevent long-press selection on Preview button as well */
+.preview {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none; /* iOS Safari */
+    touch-action: none; /* let pointer events control gestures */
+}
+/* 
+.pad-edit {
+    color: var(--color-border)
+} */
+
 /* --- Tiny piano keyboard (uses existing root variables) --- */
 .keyboard {
     /* Tiny size following the Figma frame */
-    --key-w: calc(6 / var(--var-font-size) * 1rem);      /* white key width */
-    --key-h: calc(16 / var(--var-font-size) * 1rem);     /* white key height */
-    --black-w: calc(5 / var(--var-font-size) * 1rem);    /* black key width */
-    --black-h: calc(9 / var(--var-font-size) * 1rem);    /* black key height */
+    --key-w: calc(6 / var(--font-size) * 1rem);      /* white key width */
+    --key-h: calc(18 / var(--font-size) * 1rem);     /* white key height */
+    --black-w: calc(5 / var(--font-size) * 1rem);    /* black key width */
+    --black-h: calc(11 / var(--font-size) * 1rem);    /* black key height */
     --gap: 1px;        /* spacing between white keys */
 
     position: relative;
@@ -224,6 +261,82 @@ dialog {
 
 .key-played {
     background: var(--green-200);
+}
+
+/* White keys (7 stripes) */
+.keyboard .white {
+    position: absolute;
+    top: 0;
+    width: var(--key-w);
+    height: var(--key-h);
+}
+
+/* Map C D E F G A B positions */
+.keyboard .key-c { left: calc((var(--key-w) + var(--gap)) * 0); }
+.keyboard .key-d { left: calc((var(--key-w) + var(--gap)) * 1); }
+.keyboard .key-e { left: calc((var(--key-w) + var(--gap)) * 2); }
+.keyboard .key-f { left: calc((var(--key-w) + var(--gap)) * 3); }
+.keyboard .key-g { left: calc((var(--key-w) + var(--gap)) * 4); }
+.keyboard .key-a { left: calc((var(--key-w) + var(--gap)) * 5); }
+.keyboard .key-b { left: calc((var(--key-w) + var(--gap)) * 6); }
+
+/* Black keys overlay */
+.key-black {
+    position: absolute;
+    top: 0;
+    width: var(--black-w);
+    height: var(--black-h);
+    border: 1px solid var(--black);
+    background-color: var(--black);
+    border-top-width: 0; /* match figma: no top border */
+}
+
+/* Ensure played state overrides black key default background */
+.key-black.key-played {
+    background-color: var(--green-200);
+    /* border-color: var(--green-200); */
+    /* box-shadow: 0 0 0 1px var(--color-bg); */
+}
+
+/* Place black keys between the correct whites */
+/* Center black keys in the gap between adjacent whites */
+.keyboard .key-db { left: calc((1 * var(--key-w) + 0 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-eb { left: calc((2 * var(--key-w) + 1 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+/* no black key between E and F */
+.keyboard .key-gb { left: calc((4 * var(--key-w) + 3 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-ab { left: calc((5 * var(--key-w) + 4 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-bb { left: calc((6 * var(--key-w) + 5 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+
+.edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+/* Utility to keep original casing (e.g., Dm, Bb) despite global uppercase */
+.preserve-case {
+    text-transform: none;
+}
+/* Ensure options inside elements with preserve-case also keep casing */
+.preserve-case option {
+    text-transform: none;
+}
+
+/* Keep flat accidental as lowercase within labels */
+.acc-flat {
+    text-transform: none;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
 }
 
 .toggle-buttons {
@@ -258,57 +371,3 @@ dialog {
         display: inline;
     }
 }
-
-/* White keys (7 stripes) */
-.keyboard .white {
-    position: absolute;
-    top: 0;
-    width: var(--key-w);
-    height: var(--key-h);
-}
-
-/* Map C D E F G A B positions */
-.keyboard .key-c { left: calc((var(--key-w) + var(--gap)) * 0); }
-.keyboard .key-d { left: calc((var(--key-w) + var(--gap)) * 1); }
-.keyboard .key-e { left: calc((var(--key-w) + var(--gap)) * 2); }
-.keyboard .key-f { left: calc((var(--key-w) + var(--gap)) * 3); }
-.keyboard .key-g { left: calc((var(--key-w) + var(--gap)) * 4); }
-.keyboard .key-a { left: calc((var(--key-w) + var(--gap)) * 5); }
-.keyboard .key-b { left: calc((var(--key-w) + var(--gap)) * 6); }
-
-/* Black keys overlay */
-.keyboard .key-black {
-    position: absolute;
-    top: 0;
-    width: var(--black-w);
-    height: var(--black-h);
-    border: 1px solid var(--black);
-    border-top-width: 0; /* match figma: no top border */
-}
-
-/* Place black keys between the correct whites */
-/* Center black keys in the gap between adjacent whites */
-.keyboard .key-db { left: calc((1 * var(--key-w) + 0 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-.keyboard .key-eb { left: calc((2 * var(--key-w) + 1 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-/* no black key between E and F */
-.keyboard .key-gb { left: calc((4 * var(--key-w) + 3 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-.keyboard .key-ab { left: calc((5 * var(--key-w) + 4 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-.keyboard .key-bb { left: calc((6 * var(--key-w) + 5 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-
-.edit-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-1);
-    align-items: center;
-}
-
-/* Utility to keep original casing (e.g., Dm, Bb) despite global uppercase */
-.preserve-case {
-    text-transform: none;
-}
-/* Ensure options inside elements with preserve-case also keep casing */
-.preserve-case option {
-    text-transform: none;
-}
-
-/* Remove select-specific casing overrides in favor of reusable utility */

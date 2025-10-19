@@ -18,7 +18,6 @@
             <p class="preserve-case" v-html="nowPlayingHtml"></p>
         </div>
         <div class="midi-status-container">
-            <span :class="statusClass"><span class="midi-status-symbol midi-status-symbol--not-connected">□</span> <span class="midi-status-symbol midi-status-symbol--connected">■</span> <span class="midi-status-message">{{ statusDisplay }}</span></span>
             <template v-if="!permissionAllowed && !permissionPrompt">
                 <button @click="requestMidiPermission">Allow MIDI</button>
             </template>
@@ -42,13 +41,21 @@
             @pointercancel.prevent.stop="stopPad(idx, $event)"
             @contextmenu.prevent
             ><span class="preserve-case" v-html="padButtonLabelHtml(pad)"></span></button>            
-            <button class="pad-edit" @click="openEdit(idx)">Edit</button>            
+            <div class="pad-buttons">
+                <button class="pad-edit" @click="openEdit(idx)" :disabled="!permissionAllowed || !midiEnabled">Edit</button>
+            </div>
         </div>
     </div>
 
     <dialog ref="editDialog">
         <form class="dialog-body" method="dialog" @submit.prevent>
-            <h2 class="dialog-title">Edit Pad {{ currentEditIndex + 1 }}</h2>
+            <div class="dialog-top">
+                <h2 class="dialog-title">Edit Pad {{ currentEditIndex + 1 }}</h2>
+                <button type="button" class="dialog-close" @click="closeEdit" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
             
             <div class="toggle-buttons">
                 <label class="toggle-button"><input class="toggle-button-input" type="radio" name="mode-chooser" v-model="editModel.mode" value="scale" /><span class="toggle-button-checked">[</span> Scale mode <span class="toggle-button-checked">]</span></label>
@@ -119,7 +126,13 @@
     
     <dialog ref="midiDialog">
         <form class="dialog-body" method="dialog" @submit.prevent>
-            <h2 class="dialog-title">MIDI Settings</h2>
+            <div class="dialog-top">
+                <h2 class="dialog-title">MIDI Settings</h2>
+                <button type="button" class="dialog-close" @click="closeMidiDialog" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                </button>
+            </div>
             <div class="dialog-content edit-grid">
                 <label>Output Port
                     <select v-model="midiModelOutputId">
@@ -138,6 +151,8 @@
             </div>
         </form>
     </dialog>
+
+    
     
 </template>
 
@@ -360,7 +375,7 @@ function allowedVoicingsForChord(chordType) {
 
 function defaultChord() {
     return {
-        mode: 'free',
+        mode: 'scale',
         // Scale-mode fields
         scale: 'C',
         scaleTypeScale: 'major',
@@ -582,6 +597,7 @@ function saveEdit() {
     } catch {}
     closeEdit()
 }
+
 
 // Remove unused padLabel and chordSymbol
 
@@ -990,6 +1006,8 @@ function startPreview(e) {
     try { e?.target?.setPointerCapture?.(e.pointerId) } catch {}
     for (const n of notesWithOctave) sel.ch.sendNoteOn(n)
     activePads.value['preview'] = { notes: notesWithOctave, outputId: sel.output.id, channel: sel.chNum }
+    // Reflect preview notes in the background now-playing display
+    nowPlaying.value = `${formatNotesForDisplay(notesWithOctave, padLike).join(' ')}`
     updateActiveKeys()
     if (padLike.mode === 'free') {
         logMsg(`Preview [Free]: ${padLike.freeRoot} ${padLike.scaleTypeFree} ${padLike.voicingFree} ${padLike.inversionFree} -> (${notesWithOctave.join(', ')}) on ${sel.output.name} ch${sel.chNum}`)
@@ -1010,6 +1028,29 @@ function stopPreview(e) {
     }
     delete activePads.value['preview']
     updateActiveKeys()
+    // Restore now-playing to last active pad (if any), otherwise clear
+    if (lastActiveIdx.value != null && activePads.value[lastActiveIdx.value]) {
+        const idx = lastActiveIdx.value
+        const nextPad = pads.value[idx]
+        const nextNotes = activePads.value[idx]?.notes || []
+        nowPlaying.value = `${formatNotesForDisplay(nextNotes, nextPad).join(' ')}`
+    } else {
+        const remaining = Object.keys(activePads.value)
+            .filter(k => k !== 'preview')
+            .map(n => Number(n))
+            .filter(n => Number.isInteger(n))
+            .sort((a,b)=>a-b)
+        if (remaining.length) {
+            const nextIdx = remaining[remaining.length - 1]
+            lastActiveIdx.value = nextIdx
+            const nextPad = pads.value[nextIdx]
+            const nextNotes = activePads.value[nextIdx]?.notes || []
+            nowPlaying.value = `${formatNotesForDisplay(nextNotes, nextPad).join(' ')}`
+        } else {
+            lastActiveIdx.value = null
+            nowPlaying.value = ''
+        }
+    }
 }
 
 // Safety: stop any sustained notes if the page loses focus or is closed
