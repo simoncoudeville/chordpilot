@@ -26,12 +26,7 @@
 /* Webfont: Departure Mono */
 @font-face {
     font-family: 'Departure Mono';
-     /* Try locally installed font first, then fall back to packaged webfont.
-         First URL works in production on GitHub Pages (/chordpilot/ base),
-         second URL works in local dev (served at root). */
-     src: local('Departure Mono'),
-            url('/chordpilot/fonts/DepartureMono-Regular.woff2') format('woff2'),
-            url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+    src: url('./assets/fonts/DepartureMono-Regular.woff2') format('woff2');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -213,7 +208,7 @@ dialog {
     --key-h: calc(16 / var(--var-font-size) * 1rem);     /* white key height */
     --black-w: calc(5 / var(--var-font-size) * 1rem);    /* black key width */
     --black-h: calc(9 / var(--var-font-size) * 1rem);    /* black key height */
-    --gap: calc(1 / var(--var-font-size) * 1rem);        /* spacing between white keys */
+    --gap: 1px;        /* spacing between white keys */
 
     position: relative;
     display: inline-block;
@@ -224,7 +219,7 @@ dialog {
 }
 
 .key {
-        background: var(--green-100);
+    background: var(--green-100);
 }
 
 .key-played {
