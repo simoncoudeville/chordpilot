@@ -23,6 +23,18 @@
     --space-5: calc(var(--space-unit) * 5);
 }
 
+/* Webfont: Departure Mono */
+@font-face {
+    font-family: 'Departure Mono';
+    /* First URL works in production on GitHub Pages (/chordpilot/ base),
+       second URL works in local dev (served at root). */
+    src: url('/chordpilot/fonts/DepartureMono-Regular.woff2') format('woff2'),
+         url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
