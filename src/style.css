@@ -1,237 +1,305 @@
 :root {
-    /* lightdark */
-    color-scheme: dark;
+  /* lightdark */
+  color-scheme: dark;
 
-    --black: #1d1d1d;
-    --green-100: #86A59A;
-    --green-200: #CDFFED;
+  --black: #1d1d1d;
+  --green-100: #86a59a;
+  --green-200: #cdffed;
 
-    --color-bg: var(--black);
-    --color-fg: var(--green-200);
-    --color-border: var(--green-100);
+  --color-bg: var(--black);
+  --color-fg: var(--green-200);
+  --color-border: var(--green-100);
 
-    --radius: 1px;
+  --radius: 1px;
 
-    --font-size: 12;
-    --font-size-sm: 10;
+  --font-size: 12;
+  --font-size-sm: 12;
 
-    --space-unit: calc(9 / var(--font-size) * 1rem);
-    --space-0-5: calc(var(--space-unit) * 0.5);
-    --space-1: var(--space-unit);
-    --space-2: calc(var(--space-unit) * 2);
-    --space-3: calc(var(--space-unit) * 3);
-    --space-4: calc(var(--space-unit) * 4);
-    --space-5: calc(var(--space-unit) * 5);
-    /* Responsive pad sizing */
-    --pad-min: 109px;
+  --space-unit: calc(9 / var(--font-size) * 1rem);
+  --space-0-5: calc(var(--space-unit) * 0.5);
+  --space-1: var(--space-unit);
+  --space-2: calc(var(--space-unit) * 2);
+  --space-3: calc(var(--space-unit) * 3);
+  --space-4: calc(var(--space-unit) * 4);
+  --space-5: calc(var(--space-unit) * 5);
+  /* Responsive pad sizing */
+  --pad-min: 109px;
 }
 
 /* Webfont: Departure Mono */
 @font-face {
-    font-family: 'Departure Mono';
-    src: url('./assets/fonts/DepartureMono-Regular.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
+  font-family: "Departure Mono";
+  src: url("./assets/fonts/DepartureMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    color: var(--color-fg);
-    text-transform: uppercase;
-    
-    &:focus-visible {
-        outline: 1px solid var(--color-fg);
-        outline-offset: 0px;
-        border-color: var(--color-fg);
-    }
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+  text-transform: uppercase;
+
+  &:focus-visible {
+    outline: 1px solid var(--color-fg);
+    outline-offset: 0px;
+    border-color: var(--color-fg);
+  }
 }
 
 html {
-    /* font-family: 'iA Writer Duospace', monospace; */
-    /* font-family: "DotGothic16", sans-serif; */
-    font-family: "Departure Mono", sans-serif;
-    font-size: calc(var(--font-size)/16 * 100%);
-    line-height: 1.5;
-    background-color: var(--color-bg);
+  /* font-family: 'iA Writer Duospace', monospace; */
+  /* font-family: "DotGothic16", sans-serif; */
+  font-family: "Departure Mono", sans-serif;
+  /* font-family: "Aeonik Fono TRIAL", sans-serif; */
+  font-size: calc(var(--font-size) / 16 * 100%);
+  line-height: 1.5;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
 }
 
 body {
-    margin: 0;
-    padding: var(--space-1);
+  margin: 0;
+  padding: var(--space-1);
 }
 
 h2 {
-    font-size: 1rem;
+  font-size: 1rem;
 }
 
 select {
-    display: block;
-    width: 100%;
-    background-color: var(--color-bg);
-    color: var(--color-fg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    font: inherit;
-    line-height: inherit;
-    /* appearance: none; */
-    /* padding: 0; */
-    height: var(--space-3);
-    padding: 0 var(--space-0-5);
-    margin-top: var(--space-0-5);
+  display: block;
+  width: 100%;
+  background-color: transparent;
+  color: var(--color-fg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font: inherit;
+  line-height: inherit;
+  /* appearance: none; */
+  /* padding: 0; */
+  height: var(--space-3);
+  padding: 0 var(--space-0-5);
+  margin-top: var(--space-0-5);
 }
 
 button {
-    /* reset button styles */
-    color: inherit;
-    background: none;
-    border: none;
-    padding: 0;
-    font: inherit;
+  /* reset button styles */
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent; /* remove iOS/Android tap highlight */
 
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+button.primary {
+  color: var(--color-bg);
+  background-color: var(--color-fg);
+  padding: 0 var(--space-0-5);
+}
+
+button.icon {
+  width: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 dialog {
-    width: 100%;
-    max-width: 400px;
-    margin: auto;
-    padding: var(--space-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
+  color: inherit;
+  /* background-color: var(--color-bg);
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-2) 0;
+  margin: var(--space-1) auto auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius); */
+  opacity: 0;
+  transform: translateY(calc(var(--space-2) * -1));
+  transition: all 0.15s ease;
+  transition-behavior: allow-discrete;
+
+  border: 0;
+  width: 100%;
+  background: transparent;
+  inset: 0;
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+
+  &::backdrop {
+    transition: inherit;
+    opacity: 0;
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+dialog:open {
+  opacity: 1;
+  transform: translateY(0);
+
+  &::backdrop {
+    opacity: 1;
+  }
+}
+
+@starting-style {
+  dialog:open {
+    opacity: 0;
+    transform: translateY(calc(var(--space-2) * -1));
 
     &::backdrop {
-        background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
     }
+  }
 }
 
 .dialog-body {
-    display: grid;
-    gap: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--color-bg);
+  padding: var(--space-2) 0;
+  margin: var(--space-1) auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
 }
 
 .dialog-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: calc(var(--space-1) * -1);
-    margin-bottom: calc(var(--space-1) * -1);
-
+  padding: 0 var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: calc(var(--space-1) * -1);
+  margin-bottom: calc(var(--space-1) * -1);
 }
 
 .dialog-close {
-    position: relative;
-    margin-right: calc(var(--space-1) * -1);
-    padding: var(--space-1);
+  position: relative;
+  margin-right: calc(var(--space-1) * -1);
+  padding: var(--space-1);
+}
+
+.dialog-content {
+  padding: 0 var(--space-2);
 }
 
 .dialog-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-2);
+  padding: 0 var(--space-2);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .top {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    justify-content: space-between;
-    margin-bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: space-between;
+  margin-bottom: var(--space-1);
 }
 
 .top-left {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .midi-status-container {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 .midi-status-message {
-    /* display: none; */
+  /* display: none; */
 
-    .enabled & {
-        display: none;
-    }
+  .enabled & {
+    display: none;
+  }
 }
 
 .midi-status-symbol {
-    display: none;
+  display: none;
 }
 
 .pending .midi-status-symbol--not-connected {
-    display: inline;
-    /* color: var(--color-border) */
+  display: inline;
+  /* color: var(--color-border) */
 }
 
 .enabled .midi-status-symbol--connected {
-    display: inline;
+  display: inline;
 }
 
 .pads {
-    display: grid;
-    /* Responsive columns: fill row with as many pads as fit, minimum width per pad */
-    grid-template-columns: repeat(auto-fit, minmax(var(--pad-min), 1fr));
-    gap: var(--space-1);
+  display: grid;
+  /* Responsive columns: fill row with as many pads as fit, minimum width per pad */
+  grid-template-columns: repeat(auto-fit, minmax(var(--pad-min), 1fr));
+  gap: var(--space-1);
 }
 
 .pad {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-0-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
 }
 
 .pad-buttons {
-    display: flex;
-    gap: var(--space-1);
-    justify-content: center;
-    /* font-size: calc(var(--font-size-sm) / var(--font-size) * 1rem); */
+  display: flex;
+  gap: var(--space-1);
+  justify-content: center;
+  /* font-size: calc(var(--font-size-sm) / var(--font-size) * 1rem); */
+}
+
+.pad-edit {
+  color: var(--color-border);
 }
 
 /* Prevent text selection and long-press selection on play buttons */
 .pad-play {
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	-webkit-touch-callout: none; /* iOS Safari */
-	touch-action: none; /* let pointer events control gestures */
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius);
-    text-align: left;
-    padding: var(--space-1);
-    min-height: calc(var(--space-5) * 1.5);
-    vertical-align: top;
-    display: flex;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS Safari */
+  touch-action: none; /* let pointer events control gestures */
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  text-align: left;
+  padding: var(--space-1);
+  min-height: calc(var(--space-5) * 1.5);
+  vertical-align: top;
+  display: flex;
 
-    &:active {
-        /* background-color: var(--color-fg);
+  &:active {
+    /* background-color: var(--color-fg);
         color: var(--color-bg); */
-        border-color: var(--color-fg);
-    }
+    border-color: var(--color-fg);
+  }
 
-    &:disabled {        
-        border-color: var(--color-border);
-    }
+  &:disabled {
+    border-color: var(--color-border);
+  }
 }
 
 /* Prevent long-press selection on Preview button as well */
 .preview {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none; /* iOS Safari */
-    touch-action: none; /* let pointer events control gestures */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS Safari */
+  touch-action: none; /* let pointer events control gestures */
 }
 /* 
 .pad-edit {
@@ -240,134 +308,182 @@ dialog {
 
 /* --- Tiny piano keyboard (uses existing root variables) --- */
 .keyboard {
-    /* Tiny size following the Figma frame */
-    --key-w: calc(6 / var(--font-size) * 1rem);      /* white key width */
-    --key-h: calc(18 / var(--font-size) * 1rem);     /* white key height */
-    --black-w: calc(5 / var(--font-size) * 1rem);    /* black key width */
-    --black-h: calc(11 / var(--font-size) * 1rem);    /* black key height */
-    --gap: 1px;        /* spacing between white keys */
+  /* Tiny size following the Figma frame */
+  --key-w: calc(6 / var(--font-size) * 1rem); /* white key width */
+  --key-h: calc(18 / var(--font-size) * 1rem); /* white key height */
+  --black-w: calc(5 / var(--font-size) * 1rem); /* black key width */
+  --black-h: calc(11 / var(--font-size) * 1rem); /* black key height */
+  --gap: 1px; /* spacing between white keys */
 
-    position: relative;
-    display: inline-block;
-    width: calc(var(--key-w) * 7 + var(--gap) * 6);
-    height: var(--key-h);
-    border-radius: var(--radius);
-    overflow: hidden;
+  position: relative;
+  display: inline-block;
+  width: calc(var(--key-w) * 7 + var(--gap) * 6);
+  height: var(--key-h);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .key {
-    background: var(--green-100);
+  background: var(--green-100);
 }
 
 .key-played {
-    background: var(--green-200);
+  background: var(--green-200);
 }
 
 /* White keys (7 stripes) */
 .keyboard .white {
-    position: absolute;
-    top: 0;
-    width: var(--key-w);
-    height: var(--key-h);
+  position: absolute;
+  top: 0;
+  width: var(--key-w);
+  height: var(--key-h);
 }
 
 /* Map C D E F G A B positions */
-.keyboard .key-c { left: calc((var(--key-w) + var(--gap)) * 0); }
-.keyboard .key-d { left: calc((var(--key-w) + var(--gap)) * 1); }
-.keyboard .key-e { left: calc((var(--key-w) + var(--gap)) * 2); }
-.keyboard .key-f { left: calc((var(--key-w) + var(--gap)) * 3); }
-.keyboard .key-g { left: calc((var(--key-w) + var(--gap)) * 4); }
-.keyboard .key-a { left: calc((var(--key-w) + var(--gap)) * 5); }
-.keyboard .key-b { left: calc((var(--key-w) + var(--gap)) * 6); }
+.keyboard .key-c {
+  left: calc((var(--key-w) + var(--gap)) * 0);
+}
+.keyboard .key-d {
+  left: calc((var(--key-w) + var(--gap)) * 1);
+}
+.keyboard .key-e {
+  left: calc((var(--key-w) + var(--gap)) * 2);
+}
+.keyboard .key-f {
+  left: calc((var(--key-w) + var(--gap)) * 3);
+}
+.keyboard .key-g {
+  left: calc((var(--key-w) + var(--gap)) * 4);
+}
+.keyboard .key-a {
+  left: calc((var(--key-w) + var(--gap)) * 5);
+}
+.keyboard .key-b {
+  left: calc((var(--key-w) + var(--gap)) * 6);
+}
 
 /* Black keys overlay */
 .key-black {
-    position: absolute;
-    top: 0;
-    width: var(--black-w);
-    height: var(--black-h);
-    border: 1px solid var(--black);
-    background-color: var(--black);
-    border-top-width: 0; /* match figma: no top border */
+  position: absolute;
+  top: 0;
+  width: var(--black-w);
+  height: var(--black-h);
+  border: 1px solid var(--black);
+  background-color: var(--black);
+  border-top-width: 0; /* match figma: no top border */
 }
 
 /* Ensure played state overrides black key default background */
 .key-black.key-played {
-    background-color: var(--green-200);
-    /* border-color: var(--green-200); */
-    /* box-shadow: 0 0 0 1px var(--color-bg); */
+  background-color: var(--green-200);
+  /* border-color: var(--green-200); */
+  /* box-shadow: 0 0 0 1px var(--color-bg); */
 }
 
 /* Place black keys between the correct whites */
 /* Center black keys in the gap between adjacent whites */
-.keyboard .key-db { left: calc((1 * var(--key-w) + 0 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-.keyboard .key-eb { left: calc((2 * var(--key-w) + 1 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-db {
+  left: calc(
+    (1 * var(--key-w) + 0 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2
+  );
+}
+.keyboard .key-eb {
+  left: calc(
+    (2 * var(--key-w) + 1 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2
+  );
+}
 /* no black key between E and F */
-.keyboard .key-gb { left: calc((4 * var(--key-w) + 3 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-.keyboard .key-ab { left: calc((5 * var(--key-w) + 4 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
-.keyboard .key-bb { left: calc((6 * var(--key-w) + 5 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2); }
+.keyboard .key-gb {
+  left: calc(
+    (4 * var(--key-w) + 3 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2
+  );
+}
+.keyboard .key-ab {
+  left: calc(
+    (5 * var(--key-w) + 4 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2
+  );
+}
+.keyboard .key-bb {
+  left: calc(
+    (6 * var(--key-w) + 5 * var(--gap) + var(--gap) / 2) - var(--black-w) / 2
+  );
+}
 
 .edit-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-2);
-    align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  align-items: center;
+
+  .global-scale-info {
+    grid-column: span 2;
+  }
+}
+
+.grid-span-2 {
+  grid-column: span 2;
 }
 
 /* Utility to keep original casing (e.g., Dm, Bb) despite global uppercase */
 .preserve-case {
-    text-transform: none;
+  text-transform: none;
 }
 /* Ensure options inside elements with preserve-case also keep casing */
 .preserve-case option {
-    text-transform: none;
+  text-transform: none;
 }
 
 /* Keep flat accidental as lowercase within labels */
 .acc-flat {
-    text-transform: none;
+  text-transform: none;
 }
 
 .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 .toggle-buttons {
-    display: flex;
-    gap: var(--space-2);
-    margin-bottom: var(--space-1);
+  display: flex;
+  /* gap: var(--space-2); */
+  border: 1px solid var(--color-border);
+  border-width: 1px 0;
 }
 
 .toggle-button-input {
-    /* hide accessible */
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+  /* hide accessible */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 .toggle-button {
-    color: var(--color-border);
+  color: var(--color-border);
+  position: relative;
+  background-color: var(--color-bg);
+  border-right: 1px solid var(--color-border);
 }
 
 .toggle-button-checked {
-    display: none;
+  display: none;
 }
 
 .toggle-button:has(.toggle-button-input:checked) {
-    color: var(--color-fg);
+  color: var(--color-fg);
+  height: calc(100% + 1px);
+}
 
-    .toggle-button-checked {
-        display: inline;
-    }
+.toggle-button-text {
+  display: block;
+  padding: var(--space-0-5) var(--space-2);
 }
