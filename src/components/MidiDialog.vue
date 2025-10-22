@@ -9,12 +9,34 @@
           @click="onClose"
           aria-label="Close"
         >
-          <span aria-hidden="true">&times;</span>
+          <svg
+            class="dialog-close-icon"
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13.5 4.5L4.5 13.5"
+              stroke-width="1.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M4.5 4.5L13.5 13.5"
+              stroke-width="1.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
           <span class="sr-only">Close</span>
         </button>
       </div>
       <div class="dialog-content">
-        <span class="midi-status-message">{{ statusDisplay }}</span>
+        <span class="midi-status-message color-valid">{{ statusDisplay }}</span>
         <!--<button type="button" @click="$emit('rescan')" :disabled="!midiEnabled">Rescan</button>-->
       </div>
       <div class="dialog-content edit-grid">

@@ -2,50 +2,71 @@
   <dialog ref="dlg">
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
-        <h2 class="dialog-title">Edit Pad {{ padIndex + 1 }}</h2>
+        <!--<h2 class="dialog-title">Edit Pad {{ padIndex + 1 }}</h2>-->
+        <div class="toggle-buttons">
+          <label class="toggle-button"
+            ><input
+              class="toggle-button-input sr-only"
+              type="radio"
+              name="mode-chooser"
+              v-model="model.mode"
+              value="scale"
+            /><span class="toggle-button-text">Scale mode</span>
+          </label>
+          <label class="toggle-button"
+            ><input
+              class="toggle-button-input sr-only"
+              type="radio"
+              name="mode-chooser"
+              v-model="model.mode"
+              value="free"
+            /><span class="toggle-button-text">Free mode</span>
+          </label>
+        </div>
         <button
           type="button"
           class="dialog-close"
           @click="onClose"
           aria-label="Close"
         >
-          <span aria-hidden="true">&times;</span>
+          <svg
+            class="dialog-close-icon"
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 18 18"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13.5 4.5L4.5 13.5"
+              stroke-width="1.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M4.5 4.5L13.5 13.5"
+              stroke-width="1.25"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+
           <span class="sr-only">Close</span>
         </button>
       </div>
 
-      <div class="toggle-buttons">
-        <label class="toggle-button"
-          ><input
-            class="toggle-button-input"
-            type="radio"
-            name="mode-chooser"
-            v-model="model.mode"
-            value="scale"
-          /><span class="toggle-button-text">Scale mode</span>
-        </label>
-        <label class="toggle-button"
-          ><input
-            class="toggle-button-input"
-            type="radio"
-            name="mode-chooser"
-            v-model="model.mode"
-            value="free"
-          /><span class="toggle-button-text">Free mode</span>
-        </label>
-      </div>
-
       <div class="dialog-content edit-grid">
         <template v-if="model.mode === 'scale'">
-          <p class="global-scale-info">
-            ♪ Global scale: <span class="preserve-case">{{ globalScale }}</span>
+          <p class="global-scale-info color-scale">
+            ♪ Global scale: <span>{{ globalScale }}</span>
             {{ globalScaleType }}
           </p>
         </template>
         <template v-if="model.mode !== 'scale'">
           <label
             >Root
-            <select v-model="model.freeRoot" class="preserve-case select-scale">
+            <select v-model="model.freeRoot" class="select-scale">
               <option
                 v-for="opt in MAJOR_KEY_OPTIONS"
                 :key="opt.value"
@@ -68,7 +89,7 @@
         <template v-if="model.mode === 'scale'">
           <label
             >Chord
-            <select v-model="model.degree" class="preserve-case select-chord">
+            <select v-model="model.degree" class="select-chord">
               <option
                 v-for="ch in editChordOptions"
                 :key="ch.degree"
@@ -80,7 +101,7 @@
           </label>
         </template>
         <label
-          >Extensions
+          >Extension
           <select v-model="voicingProxy">
             <option v-for="v in extensionOptions" :key="v" :value="v">
               {{ v }}
@@ -107,10 +128,10 @@
       <div class="dialog-content chord-preview">
         <div class="chord-preview-chord">
           chord:
-          <span class="preserve-case" v-html="previewChordHtml"></span>
+          <span>{{ previewChordHtml }}</span>
         </div>
         <div class="chord-preview-notes">
-          notes: <span class="preserve-case" v-html="previewNotesHtml"></span>
+          notes: <span>{{ previewNotesHtml }}</span>
         </div>
 
         <button
@@ -282,11 +303,6 @@ const previewNotesAsc = computed(() => {
   return toAscendingWithOctave(ordered, baseOct);
 });
 
-function decorateFlats(text) {
-  if (!text) return "";
-  return text.replace(/([A-G])b/g, '$1<span class="acc-flat">b<\/span>');
-}
-
 const previewSymbolWithBass = computed(() => {
   const padLike = padLikeForPreview.value;
   const sym = previewSymbol.value;
@@ -301,12 +317,10 @@ const previewSymbolWithBass = computed(() => {
   return bassPc && rootPc && bassPc !== rootPc ? `${sym}/${bassPc}` : sym;
 });
 
-const previewChordHtml = computed(() =>
-  decorateFlats(previewSymbolWithBass.value)
-);
+const previewChordHtml = computed(() => previewSymbolWithBass.value);
 const previewNotesHtml = computed(() => {
   const padLike = padLikeForPreview.value;
   const notes = toDisplayNotesForPad(previewNotesAsc.value, padLike);
-  return decorateFlats(notes.join(" "));
+  return notes.join(" ");
 });
 </script>

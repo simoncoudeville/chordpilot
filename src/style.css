@@ -2,28 +2,43 @@
   /* lightdark */
   color-scheme: dark;
 
-  --black: #1d1d1d;
-  --green-100: #86a59a;
-  --green-200: #cdffed;
-
-  --color-bg: var(--black);
-  --color-fg: var(--green-200);
-  --color-border: var(--green-100);
-
   --radius: 1px;
 
-  --font-size: 12;
-  --font-size-sm: 12;
+  --font-size: 11;
+  --font-size-sm: 11;
+  --line-height: 18;
+  --computed-line-height: calc(var(--line-height) / var(--font-size));
 
   --space-unit: calc(9 / var(--font-size) * 1rem);
   --space-0-5: calc(var(--space-unit) * 0.5);
   --space-1: var(--space-unit);
+  --space-1-5: calc(var(--space-unit) * 1.5);
   --space-2: calc(var(--space-unit) * 2);
   --space-3: calc(var(--space-unit) * 3);
   --space-4: calc(var(--space-unit) * 4);
   --space-5: calc(var(--space-unit) * 5);
   /* Responsive pad sizing */
   --pad-min: 109px;
+
+  /* Figma colors — selected frame */
+  --color-gray-100: #1a1a1a;
+  --color-gray-200: #333333;
+  --color-gray-300: #4d4d4d;
+  --color-gray-400: #999999;
+  --color-gray-500: #f2f2f2;
+
+  /* Converted to OKLCH for perceptual uniformity; hex kept as comment fallback */
+  --color-warning: oklch(80% 0.1 60); /* #eb8347 */
+  --color-valid: oklch(80% 0.1 140); /* #add788 */
+  --color-scale: oklch(80% 0.1 290); /* #8a65cc */
+
+  --color-layer-0: var(--color-gray-100);
+  --color-layer-1: var(--color-gray-200);
+  --color-layer-2: var(--color-gray-300);
+  --color-layer-3: var(--color-gray-400);
+  --color-text: var(--color-gray-500);
+  --color-text-meta: var(--color-gray-400);
+  --color-border: var(--color-gray-200);
 }
 
 /* Webfont: Departure Mono */
@@ -40,7 +55,6 @@
   margin: 0;
   padding: 0;
   font-weight: normal;
-  text-transform: uppercase;
 
   &:focus-visible {
     outline: 1px solid var(--color-fg);
@@ -52,28 +66,48 @@
 html {
   /* font-family: 'iA Writer Duospace', monospace; */
   /* font-family: "DotGothic16", sans-serif; */
-  font-family: "Departure Mono", sans-serif;
+  /* font-family: "Departure Mono", sans-serif; */
+  font-family: "InterVariable", sans-serif;
   /* font-family: "Aeonik Fono TRIAL", sans-serif; */
   font-size: calc(var(--font-size) / 16 * 100%);
-  line-height: 1.5;
-  background-color: var(--color-bg);
-  color: var(--color-fg);
+  line-height: var(--computed-line-height);
+  background-color: var(--color-layer-0);
+  color: var(--color-text);
+  /* font smoothing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
-  padding: var(--space-1);
+}
+
+#app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+svg {
+  display: block;
+  height: auto;
+  fill: currentColor;
 }
 
 h2 {
   font-size: 1rem;
+  font-weight: 500;
+}
+
+label {
+  font-weight: 500;
 }
 
 select {
   display: block;
   width: 100%;
   background-color: transparent;
-  color: var(--color-fg);
+  color: var(--color-text);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font: inherit;
@@ -87,6 +121,7 @@ select {
 
 button {
   /* reset button styles */
+  display: inline-block;
   color: inherit;
   background: none;
   border: none;
@@ -100,17 +135,36 @@ button {
   }
 }
 
-button.primary {
-  color: var(--color-bg);
-  background-color: var(--color-fg);
+.button {
+  border-radius: 1px;
   padding: 0 var(--space-0-5);
+  background-color: var(--color-layer-1);
+  font-weight: 500;
+  color: var(--color-layer-0);
 }
 
-button.icon {
+.button.icon {
   width: var(--space-2);
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 0;
+}
+
+.button.warning {
+  background-color: var(--color-warning);
+  /* color: var(--color-warning); */
+}
+
+.button.scale {
+  background-color: var(--color-scale);
+  /* color: var(--color-scale); */
+  /* font-weight: 800; */
+}
+
+.button.valid {
+  background-color: var(--color-valid);
 }
 
 dialog {
@@ -167,26 +221,30 @@ dialog:open {
   gap: var(--space-2);
   width: 100%;
   max-width: 400px;
-  background-color: var(--color-bg);
-  padding: var(--space-2) 0;
+  background-color: var(--color-layer-0);
   margin: var(--space-1) auto;
-  border: 1px solid var(--color-border);
+  /* border: 1px solid var(--color-border); */
   border-radius: var(--radius);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1), 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .dialog-top {
-  padding: 0 var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: calc(var(--space-1) * -1);
-  margin-bottom: calc(var(--space-1) * -1);
+  border-bottom: 1px solid var(--color-border);
+  /* margin-top: calc(var(--space-1) * -1);
+  margin-bottom: calc(var(--space-1) * -1); */
 }
 
 .dialog-close {
-  position: relative;
-  margin-right: calc(var(--space-1) * -1);
-  padding: var(--space-1);
+  /* margin-right: calc(var(--space-1) * -1); */
+  /* padding: var(--space-1); */
+}
+
+.dialog-close-icon {
+  stroke: currentColor;
 }
 
 .dialog-content {
@@ -194,7 +252,7 @@ dialog:open {
 }
 
 .dialog-buttons {
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-2) var(--space-2);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
@@ -205,7 +263,7 @@ dialog:open {
   align-items: center;
   gap: var(--space-2);
   justify-content: space-between;
-  margin-bottom: var(--space-1);
+  padding: var(--space-1);
 }
 
 .top-left {
@@ -242,27 +300,37 @@ dialog:open {
 }
 
 .pads {
+  padding: 1px;
   display: grid;
   /* Responsive columns: fill row with as many pads as fit, minimum width per pad */
   grid-template-columns: repeat(auto-fit, minmax(var(--pad-min), 1fr));
-  gap: var(--space-1);
+  /* gap: var(--space-1); */
+  gap: 1px;
 }
 
 .pad {
   display: flex;
   flex-direction: column;
   gap: var(--space-0-5);
+  display: grid;
 }
 
 .pad-buttons {
   display: flex;
   gap: var(--space-1);
-  justify-content: center;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  align-self: end;
+  justify-self: end;
+  z-index: 1;
   /* font-size: calc(var(--font-size-sm) / var(--font-size) * 1rem); */
 }
 
 .pad-edit {
-  color: var(--color-border);
+  color: var(--color-text-meta);
+  text-box-trim: trim-both;
+  padding: var(--space-1);
 }
 
 /* Prevent text selection and long-press selection on play buttons */
@@ -273,22 +341,37 @@ dialog:open {
   user-select: none;
   -webkit-touch-callout: none; /* iOS Safari */
   touch-action: none; /* let pointer events control gestures */
-  border: 1px solid var(--color-border);
+  text-box-trim: trim-both;
+
+  border: none;
+  background-color: var(--color-layer-2);
+  color: var(--color-text);
   border-radius: var(--radius);
   text-align: left;
   padding: var(--space-1);
   min-height: calc(var(--space-5) * 1.5);
   vertical-align: top;
   display: flex;
+  align-items: start;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  color: var(--color-text);
 
   &:active {
-    /* background-color: var(--color-fg);
-        color: var(--color-bg); */
-    border-color: var(--color-fg);
+    background-color: var(--color-text);
+    color: var(--color-layer-1);
   }
 
-  &:disabled {
-    border-color: var(--color-border);
+  &:disabled,
+  &.pad-unassigned {
+    background-color: var(--color-layer-1);
+    opacity: 1;
+    color: var(--color-layer-1);
+    /* opacity: 0.7; */
+  }
+
+  & span {
+    text-box-trim: trim-both;
   }
 }
 
@@ -304,8 +387,7 @@ dialog:open {
 /* 
 .pad-edit {
     color: var(--color-border)
-} */
-
+    grid-column: 1 / -1;
 /* --- Tiny piano keyboard (uses existing root variables) --- */
 .keyboard {
   /* Tiny size following the Figma frame */
@@ -324,11 +406,11 @@ dialog:open {
 }
 
 .key {
-  background: var(--green-100);
+  background: var(--color-layer-3);
 }
 
 .key-played {
-  background: var(--green-200);
+  background: var(--color-text);
 }
 
 /* White keys (7 stripes) */
@@ -337,6 +419,24 @@ dialog:open {
   top: 0;
   width: var(--key-w);
   height: var(--key-h);
+}
+
+/* Black keys overlay */
+.key-black {
+  position: absolute;
+  top: 0;
+  width: var(--black-w);
+  height: var(--black-h);
+  border: 1px solid var(--color-layer-0);
+  background-color: var(--color-layer-0);
+  border-top-width: 0; /* match figma: no top border */
+}
+
+/* Ensure played state overrides black key default background */
+.key-black.key-played {
+  background-color: var(--color-text);
+  /* border-color: var(--green-200); */
+  /* box-shadow: 0 0 0 1px var(--color-bg); */
 }
 
 /* Map C D E F G A B positions */
@@ -360,24 +460,6 @@ dialog:open {
 }
 .keyboard .key-b {
   left: calc((var(--key-w) + var(--gap)) * 6);
-}
-
-/* Black keys overlay */
-.key-black {
-  position: absolute;
-  top: 0;
-  width: var(--black-w);
-  height: var(--black-h);
-  border: 1px solid var(--black);
-  background-color: var(--black);
-  border-top-width: 0; /* match figma: no top border */
-}
-
-/* Ensure played state overrides black key default background */
-.key-black.key-played {
-  background-color: var(--green-200);
-  /* border-color: var(--green-200); */
-  /* box-shadow: 0 0 0 1px var(--color-bg); */
 }
 
 /* Place black keys between the correct whites */
@@ -424,19 +506,7 @@ dialog:open {
   grid-column: span 2;
 }
 
-/* Utility to keep original casing (e.g., Dm, Bb) despite global uppercase */
-.preserve-case {
-  text-transform: none;
-}
-/* Ensure options inside elements with preserve-case also keep casing */
-.preserve-case option {
-  text-transform: none;
-}
-
-/* Keep flat accidental as lowercase within labels */
-.acc-flat {
-  text-transform: none;
-}
+/* Removed preserve-case/accidental casing utilities: no global uppercase in use */
 
 .sr-only {
   position: absolute;
@@ -451,26 +521,33 @@ dialog:open {
 
 .toggle-buttons {
   display: flex;
-  /* gap: var(--space-2); */
+  gap: var(--space-1);
+  margin-left: calc(var(--space-1) * -1);
+}
+
+.toggle-button {
+  color: var(--color-text-meta);
+  font-weight: 500;
+  padding: var(--space-0-5) var(--space-1);
+  border-radius: var(--radius);
+
+  &:has(.toggle-button-input:checked) {
+    color: var(--color-text);
+    background-color: var(--color-layer-1);
+  }
+}
+
+/* 
+.toggle-buttons {
+  display: flex;
   border: 1px solid var(--color-border);
   border-width: 1px 0;
 }
 
-.toggle-button-input {
-  /* hide accessible */
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
 .toggle-button {
-  color: var(--color-border);
+  color: var(--color-text-meta);
   position: relative;
-  background-color: var(--color-bg);
+  background-color: var(--color-layer-0);
   border-right: 1px solid var(--color-border);
 }
 
@@ -479,11 +556,23 @@ dialog:open {
 }
 
 .toggle-button:has(.toggle-button-input:checked) {
-  color: var(--color-fg);
+  color: var(--color-text);
   height: calc(100% + 1px);
 }
 
 .toggle-button-text {
   display: block;
   padding: var(--space-0-5) var(--space-2);
+} */
+
+.color-valid {
+  color: var(--color-valid);
+}
+
+.color-scale {
+  color: var(--color-scale);
+}
+
+.color-warning {
+  color: var(--color-warning);
 }
