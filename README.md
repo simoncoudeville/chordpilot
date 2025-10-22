@@ -16,34 +16,40 @@ Chordpilot is a browser-based chord pad tool for quickly auditioning and sending
 ## Requirements
 
 - A browser with Web MIDI support (Chrome/Edge recommended).
-- HTTPS (or `http://localhost`) is required for Web MIDI. For phones/tablets, use an HTTPS tunnel like ngrok.
+- For it to work locally HTTPS is required for Web MIDI. For phones/tablets, use an HTTPS tunnel like ngrok.
+- To control external gear: a device that supports midi over USB is needed. Some Android phones support this but your phone needs to be in [developer mode](https://www.google.com/search?q=android+developer+mode&rlz=1C5GCCM_en&oq=android+developer+mode&gs_lcrp=EgZjaHJvbWUyCQgAEEUYORiABDIHCAEQABiABDIHCAIQABiABDIHCAMQABiABDIHCAQQABiABDIHCAUQABiABDIHCAYQABiABDIHCAcQABiABDIHCAgQABiABDIHCAkQABiABNIBCDUxNDNqMGoxqAIAsAIA&sourceid=chrome&ie=UTF-8).
 
 ## Getting started
 
-1) Install dependencies
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-2) Start the dev server
+2. Start the dev server
 
 ```bash
 npm run dev
 ```
 
-3) Open the app
+3. Open the app
 
 - Use the URL in the terminal (localhost or your LAN IP).
 - Grant MIDI permission when prompted, then click “Connect MIDI” if needed.
 - Open “MIDI Settings” to choose your Output + Channel (saved afterwards).
+
+## Global scale
+
+- Set a global Key and Mode (major/minor) from the top bar.
+- In Scale mode, pads will use this key/mode to determine chord notes.
 
 ## Using pads
 
 - Each pad can be edited (Edit button) and played (press and hold).
 - Mode
   - Free: select Root and Type; set Voicing, Inversion, Octave.
-  - Scale: select Scale (Key) and Chord degree; set Voicing, Inversion, Octave.
+  - Scale: select voicing (Based on the global Key/Mode.), Inversion, Octave.
 - Preview in the dialog auditions the current settings while held.
 - The pad label shows the chord (with slash bass for inversions when relevant), rendered with key-appropriate #/b.
 
@@ -72,7 +78,7 @@ npm run dev
 - `src/style.css` – Global styles (with flat-accidental overrides)
 - `vite.config.js` – Vite config
 
-## Mobile access (optional)
+## Local mobile access (optional)
 
 If you want to control hardware from your phone/tablet on the same network, tunnel the dev server over HTTPS (e.g., ngrok):
 
@@ -86,7 +92,6 @@ Open the ngrok HTTPS URL on your phone, grant MIDI permission, and connect to a 
 
 - No devices or permission denied: reset site permissions (lock icon), then reload and allow MIDI.
 - Device doesn’t appear: check macOS Audio MIDI Setup, try a different cable/port, or avoid problematic hubs.
-- Stuck notes: release the pad/preview; leaving or closing the page sends note off for any sustained notes.
 
 ## License
 

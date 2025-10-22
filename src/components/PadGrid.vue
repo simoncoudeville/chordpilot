@@ -3,39 +3,29 @@
     <div class="pad" v-for="(pad, idx) in pads" :key="idx">
       <button
         class="pad-play"
-        :disabled="
-          !permissionAllowed ||
-          !midiEnabled ||
-          pad?.mode === 'unassigned' ||
-          pad?.assigned === false
-        "
-        @pointerdown.prevent.stop="onStart(idx, $event)"
-        @pointerup.prevent.stop="onStop(idx, $event)"
-        @pointerleave.prevent.stop="onStop(idx, $event)"
-        @pointercancel.prevent.stop="onStop(idx, $event)"
+        :class="{
+          'pad-unassigned':
+            pad?.mode === 'unassigned' || pad?.assigned === false,
+        }"
+        @pointerdown.prevent.stop="onStart(idx, pad, $event)"
+        @pointerup.prevent.stop="onStop(idx, pad, $event)"
+        @pointerleave.prevent.stop="onStop(idx, pad, $event)"
+        @pointercancel.prevent.stop="onStop(idx, pad, $event)"
         @contextmenu.prevent
       >
-        <span
-          :class="{
-            'preserve-case': !(
-              pad?.mode === 'unassigned' || pad?.assigned === false
-            ),
-          }"
-          v-html="
-            pad?.mode === 'unassigned' || pad?.assigned === false
-              ? 'Unassigned'
+        <span>
+          {{
+            pad?.mode === "unassigned" || pad?.assigned === false
+              ? "Unassigned"
               : padButtonLabelHtml(pad)
-          "
-        ></span>
+          }}
+        </span>
       </button>
-      <div class="pad-buttons">
-        <button
-          class="pad-edit"
-          @click="$emit('edit', idx)"
-          :disabled="!permissionAllowed || !midiEnabled"
-        >
-          Edit
-        </button>
+      <div
+        class="pad-buttons"
+        v-if="!(pad?.mode === 'unassigned' || pad?.assigned === false)"
+      >
+        <button class="pad-edit" @click="$emit('edit', idx)">Edit</button>
       </div>
     </div>
   </div>
@@ -51,10 +41,15 @@ const props = defineProps({
 
 const emit = defineEmits(["start-pad", "stop-pad", "edit"]);
 
-function onStart(idx, e) {
+function onStart(idx, pad, e) {
+  if (pad?.mode === "unassigned" || pad?.assigned === false) {
+    emit("edit", idx);
+    return;
+  }
   emit("start-pad", idx, e);
 }
-function onStop(idx, e) {
+function onStop(idx, pad, e) {
+  if (pad?.mode === "unassigned" || pad?.assigned === false) return;
   emit("stop-pad", idx, e);
 }
 </script>

@@ -6,21 +6,24 @@
     />
     <div class="midi-status-container">
       <template v-if="!permissionAllowed && !permissionPrompt">
-        <button class="primary" @click="requestMidiPermission">
-          Allow MIDI
+        <button class="button midi warning" @click="requestMidiPermission">
+          Allow MIDI ⚠
         </button>
       </template>
       <template v-else-if="!midiEnabled">
-        <button class="primary" @click="connectMidiAndMaybeOpenDialog">
-          Connect MIDI
+        <button
+          class="button midi warning"
+          @click="connectMidiAndMaybeOpenDialog"
+        >
+          Connect MIDI ⚠
         </button>
       </template>
       <template v-else>
-        <button class="primary" type="button" @click="openMidiDialog">
+        <button class="button midi valid" type="button" @click="openMidiDialog">
           MIDI
         </button>
       </template>
-      <button class="primary icon" type="button" @click="openGlobalKeyDialog">
+      <button class="button scale" type="button" @click="openGlobalKeyDialog">
         <!-- Global scale: {{ globalScale }} {{ globalScaleType }} -->
         ♪
       </button>
@@ -143,8 +146,8 @@ const permissionPrompt = permissionPromptMidi;
 function requestMidiPermission() {
   connectMidiAndMaybeOpenDialog();
 }
-// Render-friendly nowPlaying with lowercase flats
-const nowPlayingHtml = computed(() => decorateFlats(nowPlaying.value));
+// Render-friendly nowPlaying (plain text)
+const nowPlayingHtml = computed(() => nowPlaying.value);
 // Track which pads are currently playing so we can stop them cleanly
 // { [idx: number]: { notes: string[], outputId: string, channel: number } }
 const activePads = ref({});
@@ -549,14 +552,7 @@ function padButtonLabel(pad) {
 
 // Render-friendly label that keeps flats in lowercase (e.g., Bb)
 function padButtonLabelHtml(pad) {
-  const plain = padButtonLabel(pad);
-  return decorateFlats(plain);
-}
-
-function decorateFlats(text) {
-  if (!text) return "";
-  // Replace note flats like Ab, Bb, Cb, Db, Eb, Fb, Gb including before suffixes (e.g., Dbm7)
-  return text.replace(/([A-G])b/g, '$1<span class="acc-flat">b</span>');
+  return padButtonLabel(pad);
 }
 
 function logMsg(msg) {
@@ -594,35 +590,33 @@ function startPad(idx, e) {
   );
   const notesWithOctave = toAscendingWithOctave(ordered, baseOct);
   const sel = getSelectedChannel();
-  if (!sel) return;
   // Ensure we capture this pointer so release is detected even if cursor leaves
   try {
     e?.target?.setPointerCapture?.(e.pointerId);
   } catch {}
-  for (const n of notesWithOctave) sel.ch.sendNoteOn(n);
+  if (sel) {
+    for (const n of notesWithOctave) sel.ch.sendNoteOn(n);
+  }
   activePads.value[idx] = {
     notes: notesWithOctave,
-    outputId: sel.output.id,
-    channel: sel.chNum,
+    outputId: sel ? sel.output.id : null,
+    channel: sel ? sel.chNum : null,
   };
   lastActiveIdx.value = idx;
   nowPlaying.value = `${toDisplayNotesForPad(notesWithOctave, pad).join(" ")}`;
   updateActiveKeys();
+  const midiInfo = sel ? ` on ${sel.output.name} ch${sel.chNum}` : " (no MIDI)";
   if (pad.mode === "free") {
     logMsg(
       `Start ${idx + 1}: [Free] ${pad.freeRoot} ${pad.scaleTypeFree} ${
         pad.voicingFree
-      } ${pad.inversionFree} -> (${notesWithOctave.join(", ")}) on ${
-        sel.output.name
-      } ch${sel.chNum}`
+      } ${pad.inversionFree} -> (${notesWithOctave.join(", ")})${midiInfo}`
     );
   } else {
     logMsg(
       `Start ${idx + 1}: ${pad.scale} ${pad.scaleTypeScale} ${pad.degree} ${
         pad.voicingScale
-      } ${pad.inversionScale} -> (${notesWithOctave.join(", ")}) on ${
-        sel.output.name
-      } ch${sel.chNum}`
+      } ${pad.inversionScale} -> (${notesWithOctave.join(", ")})${midiInfo}`
     );
   }
 }
@@ -704,36 +698,38 @@ function startPreview(e) {
   );
   const notesWithOctave = toAscendingWithOctave(ordered, baseOct);
   const sel = getSelectedChannel();
-  if (!sel) return;
   try {
     e?.target?.setPointerCapture?.(e.pointerId);
   } catch {}
-  for (const n of notesWithOctave) sel.ch.sendNoteOn(n);
+  if (sel) {
+    for (const n of notesWithOctave) sel.ch.sendNoteOn(n);
+  }
   activePads.value["preview"] = {
     notes: notesWithOctave,
-    outputId: sel.output.id,
-    channel: sel.chNum,
+    outputId: sel ? sel.output.id : null,
+    channel: sel ? sel.chNum : null,
   };
   // Reflect preview notes in the background now-playing display
   nowPlaying.value = `${toDisplayNotesForPad(notesWithOctave, padLike).join(
     " "
   )}`;
   updateActiveKeys();
+  const midiInfo2 = sel
+    ? ` on ${sel.output.name} ch${sel.chNum}`
+    : " (no MIDI)";
   if (padLike.mode === "free") {
     logMsg(
       `Preview [Free]: ${padLike.freeRoot} ${padLike.scaleTypeFree} ${
         padLike.voicingFree
-      } ${padLike.inversionFree} -> (${notesWithOctave.join(", ")}) on ${
-        sel.output.name
-      } ch${sel.chNum}`
+      } ${padLike.inversionFree} -> (${notesWithOctave.join(", ")})${midiInfo2}`
     );
   } else {
     logMsg(
       `Preview: ${padLike.scale} ${padLike.scaleTypeScale} ${padLike.degree} ${
         padLike.voicingScale
-      } ${padLike.inversionScale} -> (${notesWithOctave.join(", ")}) on ${
-        sel.output.name
-      } ch${sel.chNum}`
+      } ${padLike.inversionScale} -> (${notesWithOctave.join(
+        ", "
+      )})${midiInfo2}`
     );
   }
 }

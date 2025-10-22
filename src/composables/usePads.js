@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
 
 const STORAGE_KEY = "midi-test:pads";
-const PAD_COUNT = 10;
+const PAD_COUNT = 15;
 
 function defaultPad() {
   return {
