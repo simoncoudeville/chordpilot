@@ -1,5 +1,5 @@
 <template>
-  <dialog ref="dlg">
+  <dialog ref="dlg" @click.self="onClose" @cancel.prevent="onClose">
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <h2 class="dialog-title">Global Scale</h2>
@@ -9,52 +9,31 @@
           @click="onClose"
           aria-label="Close"
         >
-          <svg
+          <X
             class="dialog-close-icon"
             aria-hidden="true"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M13.5 4.5L4.5 13.5"
-              stroke-width="1.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M4.5 4.5L13.5 13.5"
-              stroke-width="1.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+            :size="14"
+            stroke-width="1.25"
+          />
 
           <span class="sr-only">Close</span>
         </button>
       </div>
 
       <div class="dialog-content edit-grid">
-        <label
-          >Scale
-          <select v-model="scaleLocal" class="select-scale">
-            <option
-              v-for="opt in MAJOR_KEY_OPTIONS"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
+        <label>
+          <span class="label-text">Root</span>
+          <CustomSelect
+            v-model="scaleLocal"
+            :options="MAJOR_KEY_OPTIONS"
+            option-value-key="value"
+            option-label-key="label"
+            wrapper-class="select-scale"
+          />
         </label>
-        <label
-          >Type
-          <select v-model="typeLocal">
-            <option value="major">major</option>
-            <option value="minor">minor</option>
-          </select>
+        <label>
+          <span class="label-text">Type</span>
+          <CustomSelect v-model="typeLocal" :options="['major', 'minor']" />
         </label>
         <p
           v-if="isDirty && scalePadCount > 0"
@@ -75,6 +54,8 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { X } from "lucide-vue-next";
+import CustomSelect from "./CustomSelect.vue";
 
 const props = defineProps({
   modelScale: { type: String, required: true },

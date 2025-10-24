@@ -1,84 +1,199 @@
 <template>
-  <dialog ref="dlg">
+  <dialog ref="dlg" @click.self="onClose" @cancel.prevent="onClose">
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
-        <h2 class="dialog-title">MIDI Settings</h2>
+        <h2 class="dialog-title">MIDI</h2>
         <button
           type="button"
           class="dialog-close"
           @click="onClose"
           aria-label="Close"
         >
-          <svg
+          <X
             class="dialog-close-icon"
             aria-hidden="true"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M13.5 4.5L4.5 13.5"
-              stroke-width="1.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M4.5 4.5L13.5 13.5"
-              stroke-width="1.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+            :size="14"
+            stroke-width="2"
+          />
 
           <span class="sr-only">Close</span>
         </button>
       </div>
-      <div class="dialog-content">
-        <span class="midi-status-message color-valid">{{ statusDisplay }}</span>
-        <!--<button type="button" @click="$emit('rescan')" :disabled="!midiEnabled">Rescan</button>-->
-      </div>
-      <div class="dialog-content edit-grid">
-        <label
-          >Output Port
-          <select v-model="outputIdProxy">
-            <option
-              v-for="output in outputs"
-              :key="output.id"
-              :value="output.id"
+
+      <!-- State machine per design -->
+      <template v-if="!midiSupported">
+        <div class="dialog-content">
+          <h3 class="color-warning">Web MIDI not supported</h3>
+          <p>Your browser doesn’t support Web MIDI. Try Chrome or Edge.</p>
+        </div>
+      </template>
+      <template v-else>
+        <!-- 1) Permission required -->
+        <template v-if="permissionOnly && permission !== 'denied'">
+          <div class="dialog-content">
+            <h3 class="color-warning">MIDI permission required</h3>
+            <p>
+              To use external MIDI devices, allow access when your browser
+              prompts you.
+            </p>
+          </div>
+          <div class="dialog-content">
+            <button
+              type="button"
+              class="button block large"
+              @click="$emit('request-permission')"
             >
-              {{ output.name }}
-            </option>
-          </select>
-        </label>
-        <label
-          >Channel
-          <select v-model.number="outChProxy">
-            <option v-for="ch in 16" :key="ch" :value="ch">{{ ch }}</option>
-          </select>
-        </label>
-      </div>
-      <div class="dialog-buttons">
-        <button type="button" @click="onClose">Close</button>
-        <button type="button" @click="$emit('save')" :disabled="!isMidiDirty">
-          Save
-        </button>
-      </div>
+              Allow MIDI
+            </button>
+          </div>
+        </template>
+
+        <!-- 1.1) Permission denied -->
+        <template v-else-if="permissionOnly && permission === 'denied'">
+          <div class="dialog-content">
+            <h3 class="color-warning">MIDI denied</h3>
+            <p>
+              MIDI permission was blocked. To grant access again, change this
+              site's MIDI permission in your browser settings, then reopen this
+              dialog.
+            </p>
+          </div>
+        </template>
+
+        <!-- 1.2) Permission granted but not connected yet -->
+        <template v-else-if="permission === 'granted' && !midiEnabled">
+          <div class="dialog-content">
+            <h3>Connect to MIDI</h3>
+            <p>
+              Permission granted. Connect to your MIDI subsystem to continue.
+            </p>
+          </div>
+          <div class="dialog-content">
+            <button
+              type="button"
+              class="button block large valid"
+              @click="$emit('request-connect')"
+            >
+              Connect MIDI
+            </button>
+          </div>
+        </template>
+
+        <!-- 2) Connected but no devices detected -->
+        <template v-else-if="midiEnabled && outputs.length === 0">
+          <div class="dialog-content">
+            <h3 class="color-warning">No MIDI devices detected</h3>
+            <p>Check your MIDI device and try scanning for devices.</p>
+          </div>
+          <div class="dialog-content">
+            <button
+              type="button"
+              class="button block large"
+              @click="$emit('rescan')"
+            >
+              Scan for devices
+            </button>
+          </div>
+          <div class="dialog-content edit-grid">
+            <label class="flex-grow-1">
+              <span class="label-text">Output Port</span>
+              <CustomSelect
+                v-model="outputIdProxy"
+                :options="outputs"
+                option-value-key="id"
+                option-label-key="name"
+              />
+            </label>
+            <label>
+              <span class="label-text">Channel</span>
+              <CustomSelect
+                v-model="outChProxy"
+                :options="[
+                  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                ]"
+                :cast-number="true"
+              />
+            </label>
+          </div>
+          <div class="dialog-buttons">
+            <button type="button" @click="onClose">Close</button>
+            <button
+              type="button"
+              @click="$emit('save')"
+              :disabled="!isMidiDirty"
+            >
+              Save
+            </button>
+          </div>
+        </template>
+
+        <!-- 3) Connected with devices -->
+        <template v-else>
+          <div class="dialog-content">
+            <h3 class="color-valid">MIDI connected</h3>
+            <p>Your MIDI device is connected and ready to use.</p>
+          </div>
+          <div class="dialog-content">
+            <button
+              type="button"
+              class="button block large"
+              @click="$emit('rescan')"
+            >
+              Scan for devices
+            </button>
+          </div>
+          <div class="dialog-content edit-grid">
+            <label class="flex-grow-1">
+              <span class="label-text">Output Port</span>
+              <CustomSelect
+                v-model="outputIdProxy"
+                :options="outputs"
+                option-value-key="id"
+                option-label-key="name"
+              />
+            </label>
+            <label>
+              <span class="label-text">Channel</span>
+              <CustomSelect
+                v-model="outChProxy"
+                :options="[
+                  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                ]"
+                :cast-number="true"
+              />
+            </label>
+          </div>
+          <div class="dialog-buttons">
+            <button type="button" @click="onClose">Close</button>
+            <button
+              type="button"
+              @click="$emit('save')"
+              :disabled="!isMidiDirty"
+            >
+              Save
+            </button>
+          </div>
+        </template>
+      </template>
     </form>
   </dialog>
 </template>
 
 <script setup>
 import { ref, computed } from "vue";
+import { X } from "lucide-vue-next";
+import CustomSelect from "./CustomSelect.vue";
 
 const props = defineProps({
   midiEnabled: { type: Boolean, default: false },
+  midiSupported: { type: Boolean, default: true },
   outputs: { type: Array, default: () => [] },
   midiModelOutputId: { type: String, default: "" },
   midiModelOutCh: { type: Number, default: 1 },
   statusDisplay: { type: String, default: "" },
   isMidiDirty: { type: Boolean, default: false },
+  permission: { type: String, default: "unknown" },
+  permissionPrompt: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -87,6 +202,8 @@ const emit = defineEmits([
   "save",
   "close",
   "rescan",
+  "request-permission",
+  "request-connect",
 ]);
 
 const dlg = ref(null);
@@ -99,6 +216,11 @@ const outChProxy = computed({
   get: () => props.midiModelOutCh,
   set: (val) => emit("update:midiModelOutCh", val),
 });
+
+// Step 1: Permission-only mode when MIDI access is not granted and not enabled yet
+const permissionOnly = computed(
+  () => props.permission !== "granted" && !props.midiEnabled
+);
 
 function open() {
   dlg.value?.showModal();

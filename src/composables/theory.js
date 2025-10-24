@@ -250,6 +250,72 @@ export function computeChordNotesFor(pad) {
   return unique;
 }
 
+// Compute only the base chord notes (triad or seventh), excluding added tensions
+export function computeBaseChordNotesFor(pad) {
+  const voicing = pad.mode === "free" ? pad.voicingFree : pad.voicingScale;
+  let baseSymbol = "";
+  if (pad?.mode === "free") {
+    const root = pad.freeRoot;
+    const st = pad.scaleTypeFree;
+    const triadSymbol = st === "minor" ? `${root}m` : `${root}`;
+    const seventhSymbol = st === "minor" ? `${root}m7` : `${root}maj7`;
+    baseSymbol = ["triad", "add2", "add9", "6", "sus2", "sus4"].includes(
+      voicing
+    )
+      ? triadSymbol
+      : seventhSymbol;
+  } else {
+    const st = pad.scaleTypeScale;
+    const idx = degreeIndex(pad.degree, st);
+    if (idx < 0) return [];
+    const keyInfo =
+      st === "major"
+        ? Key.majorKey(pad.scale)
+        : Key.minorKey(pad.scale).natural;
+    const triadSymbol = keyInfo.triads[idx];
+    const seventhSymbol =
+      (keyInfo.chords && keyInfo.chords[idx]) || triadSymbol;
+    baseSymbol = ["triad", "add2", "add9", "6", "sus2", "sus4"].includes(
+      voicing
+    )
+      ? triadSymbol
+      : seventhSymbol;
+  }
+  let baseNotes = Chord.get(baseSymbol).notes.map((n) => Note.pitchClass(n));
+  // Handle sus by replacing the 3rd with 2 or 4
+  if (voicing === "sus2" || voicing === "sus4") {
+    const info = Chord.get(baseSymbol);
+    let rootPc = info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : "");
+    if (rootPc) {
+      const second = Note.pitchClass(Note.transpose(rootPc, "2M"));
+      const fourth = Note.pitchClass(Note.transpose(rootPc, "4P"));
+      const fifth = Note.pitchClass(Note.transpose(rootPc, "5P"));
+      baseNotes = voicing === "sus2" ? [rootPc, second, fifth] : [rootPc, fourth, fifth];
+    }
+  }
+  // For add2, place the 2nd right above the root in base ordering
+  if (voicing === "add2") {
+    const info = Chord.get(baseSymbol);
+    const rootPc = info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : "");
+    if (rootPc) {
+      const second = Note.pitchClass(Note.transpose(rootPc, "2M"));
+      const pcs = baseNotes.map((n) => Note.pitchClass(n));
+      const rest = pcs.filter((pc) => pc !== rootPc && pc !== second);
+      baseNotes = [rootPc, second, ...rest];
+    }
+  }
+  // Deduplicate while preserving order
+  const seen = new Set();
+  const unique = [];
+  for (const pc of baseNotes) {
+    if (!seen.has(pc)) {
+      seen.add(pc);
+      unique.push(pc);
+    }
+  }
+  return unique;
+}
+
 export function inversionIndex(label) {
   if (label === "root") return 0;
   const m = String(label || "").match(/(\d+)/);

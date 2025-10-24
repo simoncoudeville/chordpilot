@@ -1,5 +1,5 @@
 <template>
-  <dialog ref="dlg">
+  <dialog ref="dlg" @click.self="onClose" @cancel.prevent="onClose">
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <!--<h2 class="dialog-title">Edit Pad {{ padIndex + 1 }}</h2>-->
@@ -29,114 +29,93 @@
           @click="onClose"
           aria-label="Close"
         >
-          <svg
+          <X
             class="dialog-close-icon"
             aria-hidden="true"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M13.5 4.5L4.5 13.5"
-              stroke-width="1.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-            <path
-              d="M4.5 4.5L13.5 13.5"
-              stroke-width="1.25"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+            :size="14"
+            stroke-width="2"
+          />
 
           <span class="sr-only">Close</span>
         </button>
       </div>
-
-      <div class="dialog-content edit-grid">
-        <template v-if="model.mode === 'scale'">
+      <template v-if="model.mode === 'scale'">
+        <div class="dialog-content">
           <p class="global-scale-info color-scale">
-            ♪ Global scale: <span>{{ globalScale }}</span>
+            <Music3
+              aria-hidden="true"
+              :size="14"
+              stroke-width="2"
+              fill="currentColor"
+            />
+
+            Global scale: <span>{{ globalScale }}</span>
             {{ globalScaleType }}
           </p>
-        </template>
+        </div>
+      </template>
+      <div class="dialog-content edit-grid">
         <template v-if="model.mode !== 'scale'">
-          <label
-            >Root
-            <select v-model="model.freeRoot" class="select-scale">
-              <option
-                v-for="opt in MAJOR_KEY_OPTIONS"
-                :key="opt.value"
-                :value="opt.value"
-              >
-                {{ opt.label }}
-              </option>
-            </select>
+          <label>
+            <span class="label-text">Root</span>
+            <CustomSelect
+              v-model="model.freeRoot"
+              :options="MAJOR_KEY_OPTIONS"
+              option-value-key="value"
+              option-label-key="label"
+              wrapper-class="select-scale"
+            />
           </label>
         </template>
         <template v-if="model.mode !== 'scale'">
           <label>
-            Type
-            <select v-model="scaleTypeProxy">
-              <option value="major">major</option>
-              <option value="minor">minor</option>
-            </select>
+            <span class="label-text">Type</span>
+            <CustomSelect
+              v-model="scaleTypeProxy"
+              :options="['major', 'minor']"
+            />
           </label>
         </template>
         <template v-if="model.mode === 'scale'">
-          <label
-            >Chord
-            <select v-model="model.degree" class="select-chord">
-              <option
-                v-for="ch in editChordOptions"
-                :key="ch.degree"
-                :value="ch.degree"
-              >
-                {{ ch.degree }} — {{ ch.display }}
-              </option>
-            </select>
+          <label class="flex-grow-1">
+            <span class="label-text">Chord</span>
+            <CustomSelect v-model="model.degree" wrapper-class="select-chord">
+              <template #options>
+                <option
+                  v-for="ch in editChordOptions"
+                  :key="ch.degree"
+                  :value="ch.degree"
+                >
+                  {{ ch.degree }} — {{ ch.display }}
+                </option>
+              </template>
+            </CustomSelect>
           </label>
         </template>
-        <label
-          >Extension
-          <select v-model="voicingProxy">
-            <option v-for="v in extensionOptions" :key="v" :value="v">
-              {{ v }}
-            </option>
-          </select>
+        <label class="flex-grow-1">
+          <span class="label-text">Extension</span>
+          <CustomSelect v-model="voicingProxy" :options="extensionOptions" />
         </label>
-        <label
-          >Inversion
-          <select v-model="inversionProxy">
-            <option v-for="inv in editInversions" :key="inv" :value="inv">
-              {{ inv }}
-            </option>
-          </select>
+        <label class="flex-grow-1">
+          <span class="label-text">Inversion</span>
+          <CustomSelect v-model="inversionProxy" :options="editInversions" />
         </label>
-        <label
-          >Octave
-          <select v-model.number="octaveProxy">
-            <option v-for="o in [2, 3, 4, 5, 6]" :key="o" :value="o">
-              {{ o }}
-            </option>
-          </select>
+        <label class="flex-grow-1">
+          <span class="label-text">Register</span>
+          <CustomSelect
+            v-model="octaveProxy"
+            :options="[2, 3, 4, 5, 6]"
+            :cast-number="true"
+          />
         </label>
       </div>
       <div class="dialog-content chord-preview">
-        <div class="chord-preview-chord">
-          chord:
-          <span>{{ previewChordHtml }}</span>
-        </div>
         <div class="chord-preview-notes">
           notes: <span>{{ previewNotesHtml }}</span>
         </div>
-
         <button
           type="button"
-          class="preview"
+          class="button large preview"
           :disabled="!permissionAllowed || !midiEnabled || !hasChordForPreview"
           @pointerdown.prevent.stop="$emit('preview-start', $event)"
           @pointerup.prevent.stop="$emit('preview-stop', $event)"
@@ -144,7 +123,7 @@
           @pointercancel.prevent.stop="$emit('preview-stop', $event)"
           @contextmenu.prevent
         >
-          ► Preview
+          Preview
         </button>
       </div>
       <div class="dialog-buttons">
@@ -159,6 +138,9 @@
 
 <script setup>
 import { ref, computed, toRef } from "vue";
+import { X } from "lucide-vue-next";
+import { Music3 } from "lucide-vue-next";
+import CustomSelect from "./CustomSelect.vue";
 import {
   computeChordNotesFor,
   inversionIndex,
