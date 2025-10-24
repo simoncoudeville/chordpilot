@@ -5,27 +5,27 @@
       :now-playing-html="nowPlayingHtml"
     />
     <div class="midi-status-container">
-      <template v-if="!permissionAllowed && !permissionPrompt">
-        <button class="button midi warning" @click="requestMidiPermission">
-          Allow MIDI ⚠
-        </button>
-      </template>
-      <template v-else-if="!midiEnabled">
-        <button
-          class="button midi warning"
-          @click="connectMidiAndMaybeOpenDialog"
-        >
-          Connect MIDI ⚠
-        </button>
-      </template>
-      <template v-else>
-        <button class="button midi valid" type="button" @click="openMidiDialog">
-          MIDI
-        </button>
-      </template>
-      <button class="button scale" type="button" @click="openGlobalKeyDialog">
-        <!-- Global scale: {{ globalScale }} {{ globalScaleType }} -->
-        ♪
+      <button
+        class="button midi"
+        :class="midiEnabled && outputs.length > 0 ? 'valid' : 'warning'"
+        type="button"
+        @click="openMidiDialog"
+        :disabled="!midiSupported"
+        :title="!midiSupported ? 'Your browser does not support Web MIDI' : ''"
+      >
+        MIDI
+      </button>
+      <button
+        class="button icon scale"
+        type="button"
+        @click="openGlobalKeyDialog"
+      >
+        <Music3
+          aria-hidden="true"
+          :size="14"
+          stroke-width="2"
+          fill="currentColor"
+        />
       </button>
     </div>
   </div>
@@ -65,7 +65,10 @@
   <MidiDialog
     ref="midiDialogRef"
     :midi-enabled="midiEnabled"
+    :midi-supported="midiSupported"
     :outputs="outputs"
+    :permission="permission"
+    :permission-prompt="permissionPrompt"
     v-model:midi-model-output-id="midiModelOutputId"
     v-model:midi-model-out-ch="midiModelOutCh"
     :status-display="statusDisplay"
@@ -73,6 +76,9 @@
     @save="saveMidiDialog"
     @close="closeMidiDialog"
     @rescan="rescanMidi"
+    @request-permission="handleRequestPermission"
+    @refresh-permission="handleRefreshPermission"
+    @request-connect="handleRequestConnect"
   />
 
   <GlobalKeyDialog
@@ -96,6 +102,7 @@ import {
   nextTick,
 } from "vue";
 import { WebMidi } from "webmidi";
+import { Music3 } from "lucide-vue-next";
 import { Note, Chord, Key } from "@tonaljs/tonal";
 import {
   pcToCssKey,
@@ -106,6 +113,7 @@ import {
   MAJOR_DEGREES,
   MINOR_DEGREES,
   computeChordNotesFor,
+  computeBaseChordNotesFor,
   inversionIndex,
   rotate,
   toAscendingWithOctave,
@@ -140,17 +148,21 @@ const {
 } = useMidi();
 const log = ref([]);
 const nowPlaying = ref("");
+const midiSupported = ref(true);
+// Sticky display of the last pad that was played, even after releasing keys
+const stickyNotes = ref([]);
+const stickyPadLike = ref(null);
 const lastActiveIdx = ref(null);
 const permissionAllowed = permissionAllowedMidi;
 const permissionPrompt = permissionPromptMidi;
-function requestMidiPermission() {
-  connectMidiAndMaybeOpenDialog();
-}
+// Deprecated: permission gating UI removed in favor of a single MIDI button
 // Render-friendly nowPlaying (plain text)
 const nowPlayingHtml = computed(() => nowPlaying.value);
 // Track which pads are currently playing so we can stop them cleanly
 // { [idx: number]: { notes: string[], outputId: string, channel: number } }
 const activePads = ref({});
+// Preview playback state (kept separate so it doesn't affect UI)
+const previewActive = ref(null);
 // active pitch classes for keyboard highlighting (lowercase, flats)
 const activeKeySet = ref(new Set());
 
@@ -162,13 +174,20 @@ const globalKeyDialogRef = ref(null);
 const midiModelOutputId = ref("");
 const midiModelOutCh = ref(1);
 const isMidiDirty = computed(() => {
-  return (
-    selectedOutputId.value !== midiModelOutputId.value ||
-    Number(selectedOutCh.value) !== Number(midiModelOutCh.value)
-  );
+  const id = midiModelOutputId.value;
+  const ch = Number(midiModelOutCh.value);
+  const hasOutputs = Array.isArray(outputs.value) && outputs.value.length > 0;
+  const idExists = hasOutputs && outputs.value.some((o) => o.id === id);
+  const chValid = ch >= 1 && ch <= 16;
+  // If we don't have any outputs yet or current selection is invalid, there's nothing to save
+  if (!hasOutputs || !idExists || !chValid) return false;
+  // Only dirty when the selection actually differs from the current app selection
+  return selectedOutputId.value !== id || Number(selectedOutCh.value) !== ch;
 });
 
 function openMidiDialog() {
+  // Non-pad interaction: clear visual display
+  clearVisualDisplay();
   // Seed dialog model from current selection
   midiModelOutputId.value =
     selectedOutputId.value || outputs.value[0]?.id || "";
@@ -179,6 +198,8 @@ function closeMidiDialog() {
   midiDialogRef.value?.close?.();
 }
 function openGlobalKeyDialog() {
+  // Non-pad interaction: clear visual display
+  clearVisualDisplay();
   globalKeyDialogRef.value?.open?.();
 }
 function onCloseGlobalKey() {}
@@ -216,6 +237,52 @@ function rescanMidi() {
   }
 }
 
+// Keep dialog selection sensible as devices appear: prefer previous selected device,
+// otherwise pick the first output. Keep Save disabled by syncing app selection and dialog model.
+watch(
+  () => outputs.value,
+  (list) => {
+    const arr = Array.isArray(list) ? list : [];
+    if (arr.length === 0) return;
+    const currentSel = selectedOutputId.value;
+    const exists = arr.some((o) => o.id === currentSel);
+    const desiredId = exists ? currentSel : arr[0].id;
+    if (selectedOutputId.value !== desiredId) {
+      selectedOutputId.value = desiredId;
+    }
+    if (midiModelOutputId.value !== desiredId) {
+      midiModelOutputId.value = desiredId;
+    }
+    const ch = Number(selectedOutCh.value);
+    const chValid = ch >= 1 && ch <= 16 ? ch : 1;
+    if (selectedOutCh.value !== chValid) selectedOutCh.value = chValid;
+    if (Number(midiModelOutCh.value) !== chValid)
+      midiModelOutCh.value = chValid;
+  },
+  { deep: false }
+);
+
+// Handlers for MidiDialog actions
+async function handleRequestPermission() {
+  // Trigger the browser permission request by attempting to enable MIDI
+  try {
+    await connectMidi();
+  } catch {}
+  await updatePermissionStatus();
+}
+
+async function handleRefreshPermission() {
+  await updatePermissionStatus();
+}
+
+async function handleRequestConnect() {
+  // Attempt to connect without opening the dialog again
+  try {
+    await connectMidi();
+  } catch {}
+  await updatePermissionStatus();
+}
+
 // moved theory helpers to composable
 
 // Ensure a pad object includes current global key when in scale mode
@@ -234,9 +301,17 @@ function asPadLike(pad) {
 function updateActiveKeys() {
   const next = new Set();
   const padsMap = activePads.value || {};
-  for (const k of Object.keys(padsMap)) {
-    const notes = padsMap[k]?.notes || [];
-    for (const n of notes) {
+  const keys = Object.keys(padsMap);
+  if (keys.length > 0) {
+    for (const k of keys) {
+      const notes = padsMap[k]?.notes || [];
+      for (const n of notes) {
+        const pc = Note.pitchClass(n);
+        if (pc) next.add(pcToCssKey(pc));
+      }
+    }
+  } else if ((stickyNotes.value || []).length) {
+    for (const n of stickyNotes.value) {
       const pc = Note.pitchClass(n);
       if (pc) next.add(pcToCssKey(pc));
     }
@@ -271,6 +346,16 @@ function stopAllActive() {
   activeKeySet.value = new Set();
   lastActiveIdx.value = null;
   nowPlaying.value = "";
+  stickyNotes.value = [];
+  stickyPadLike.value = null;
+}
+
+// Clear UI only (notes label + keyboard), without sending MIDI Note Off
+function clearVisualDisplay() {
+  activeKeySet.value = new Set();
+  nowPlaying.value = "";
+  stickyNotes.value = [];
+  stickyPadLike.value = null;
 }
 
 // Per-pad chord state and editor
@@ -339,6 +424,11 @@ onMounted(() => {
   rehydrateGlobalKey();
   persistGlobalKey();
   // Always refresh MIDI permission state on load
+  midiSupported.value = Boolean(
+    (WebMidi && "supported" in WebMidi ? WebMidi.supported : undefined) ??
+      (typeof navigator !== "undefined" &&
+        typeof navigator.requestMIDIAccess === "function")
+  );
   updatePermissionStatus();
 
   window.addEventListener("blur", stopAllActive);
@@ -346,6 +436,13 @@ onMounted(() => {
   window.addEventListener("beforeunload", stopAllActive);
   // Suppress context menu globally
   document.addEventListener("contextmenu", contextMenuHandler);
+
+  // Open MIDI dialog on page load
+  nextTick(() => {
+    try {
+      midiDialogRef.value?.open?.();
+    } catch {}
+  });
 });
 
 const editDialog = ref(null);
@@ -453,7 +550,7 @@ const editInversions = computed(() => {
     scaleTypeFree: editScaleType.value,
     scaleTypeScale: editScaleType.value,
   };
-  const len = computeChordNotesFor(padLike).length;
+  const len = computeBaseChordNotesFor(padLike).length;
   return Array.from({ length: len }, (_, i) => (i === 0 ? "root" : ordinal(i)));
 });
 
@@ -461,14 +558,34 @@ const editInversions = computed(() => {
 
 // Human-friendly status message for the badge
 const statusDisplay = computed(() => {
-  if (midiEnabled.value) return "MIDI connected";
+  if (!midiSupported.value) return "Web MIDI not supported";
+  if (midiEnabled.value) {
+    if (!outputs.value?.length) return "MIDI connected — no devices detected";
+    return "MIDI connected";
+  }
   if (permission.value === "granted") return "MIDI allowed — not connected";
   if (permission.value === "prompt") return "MIDI permission required";
   if (permission.value === "denied") return "MIDI denied";
-  return status.value || "MIDI not enabled";
+  return status.value || "MIDI not connected";
 });
 
+// Auto-reconnect: if permission is granted and browser supports Web MIDI,
+// enable MIDI silently on permission changes or initial load
+watch(
+  () => permission.value,
+  async (p) => {
+    if (p === "granted" && midiSupported.value && !midiEnabled.value) {
+      try {
+        await connectMidi();
+      } catch {}
+    }
+  },
+  { immediate: false }
+);
+
 function openEdit(idx) {
+  // Non-pad interaction: clear visual display
+  clearVisualDisplay();
   currentEditIndex.value = idx;
   const pad = pads.value[idx];
   const isUnassigned = pad.mode === "unassigned";
@@ -530,10 +647,14 @@ function padButtonLabel(pad) {
         }
       : pad;
   const raw = computeChordNotesFor(padLike);
+  const base = computeBaseChordNotesFor(padLike);
   const invIdx = inversionIndex(
     pad.mode === "free" ? pad.inversionFree : pad.inversionScale
   );
-  const ordered = rotate(raw, invIdx);
+  const rotatedBase = rotate(base, invIdx);
+  const baseSet = new Set(base);
+  const extras = raw.filter((pc) => !baseSet.has(pc));
+  const ordered = rotatedBase.concat(extras);
   const baseOct = Number(
     (pad.mode === "free" ? pad.octaveFree : pad.octaveScale) ?? 4
   );
@@ -562,6 +683,8 @@ function logMsg(msg) {
 
 // Wrapper: connect MIDI then open settings if nothing valid was saved
 async function connectMidiAndMaybeOpenDialog() {
+  // Non-pad interaction: clear visual display
+  clearVisualDisplay();
   await connectMidi();
   try {
     if (!hasValidSavedMidiSettings()) openMidiDialog();
@@ -581,10 +704,14 @@ function startPad(idx, e) {
         }
       : padOrig;
   const raw = computeChordNotesFor(pad);
+  const base = computeBaseChordNotesFor(pad);
   const invIdx = inversionIndex(
     pad.mode === "free" ? pad.inversionFree : pad.inversionScale
   );
-  const ordered = rotate(raw, invIdx);
+  const rotatedBase = rotate(base, invIdx);
+  const baseSet = new Set(base);
+  const extras = raw.filter((pc) => !baseSet.has(pc));
+  const ordered = rotatedBase.concat(extras);
   const baseOct = Number(
     (pad.mode === "free" ? pad.octaveFree : pad.octaveScale) ?? 4
   );
@@ -604,6 +731,9 @@ function startPad(idx, e) {
   };
   lastActiveIdx.value = idx;
   nowPlaying.value = `${toDisplayNotesForPad(notesWithOctave, pad).join(" ")}`;
+  // Remember this chord for sticky display after release
+  stickyNotes.value = [...notesWithOctave];
+  stickyPadLike.value = pad;
   updateActiveKeys();
   const midiInfo = sel ? ` on ${sel.output.name} ch${sel.chNum}` : " (no MIDI)";
   if (pad.mode === "free") {
@@ -655,7 +785,15 @@ function stopPad(idx, e) {
       )}`;
     } else {
       lastActiveIdx.value = null;
-      nowPlaying.value = "";
+      // Show sticky last-played notes if available
+      if ((stickyNotes.value || []).length && stickyPadLike.value) {
+        nowPlaying.value = `${toDisplayNotesForPad(
+          stickyNotes.value,
+          stickyPadLike.value
+        ).join(" ")}`;
+      } else {
+        nowPlaying.value = "";
+      }
     }
   }
 }
@@ -673,7 +811,7 @@ function ordinal(n) {
 
 // --- Preview playback for chord dialog ---
 function startPreview(e) {
-  if (activePads.value["preview"]) return;
+  if (previewActive.value) return;
   const pad = editModel.value;
   if (pad?.mode === "unassigned" || pad?.assigned === false) return;
   const padLike = {
@@ -689,10 +827,14 @@ function startPreview(e) {
     octaveScale: editOctave.value,
   };
   const raw = computeChordNotesFor(padLike);
+  const base = computeBaseChordNotesFor(padLike);
   const invIdx = inversionIndex(
     padLike.mode === "free" ? padLike.inversionFree : padLike.inversionScale
   );
-  const ordered = rotate(raw, invIdx);
+  const rotatedBase = rotate(base, invIdx);
+  const baseSet = new Set(base);
+  const extras = raw.filter((pc) => !baseSet.has(pc));
+  const ordered = rotatedBase.concat(extras);
   const baseOct = Number(
     (padLike.mode === "free" ? padLike.octaveFree : padLike.octaveScale) ?? 4
   );
@@ -704,16 +846,12 @@ function startPreview(e) {
   if (sel) {
     for (const n of notesWithOctave) sel.ch.sendNoteOn(n);
   }
-  activePads.value["preview"] = {
+  // Track preview separately so it doesn't affect keyboard highlights/labels
+  previewActive.value = {
     notes: notesWithOctave,
     outputId: sel ? sel.output.id : null,
     channel: sel ? sel.chNum : null,
   };
-  // Reflect preview notes in the background now-playing display
-  nowPlaying.value = `${toDisplayNotesForPad(notesWithOctave, padLike).join(
-    " "
-  )}`;
-  updateActiveKeys();
   const midiInfo2 = sel
     ? ` on ${sel.output.name} ch${sel.chNum}`
     : " (no MIDI)";
@@ -735,7 +873,7 @@ function startPreview(e) {
 }
 
 function stopPreview(e) {
-  const active = activePads.value["preview"];
+  const active = previewActive.value;
   if (!active) return;
   try {
     e?.target?.releasePointerCapture?.(e.pointerId);
@@ -750,33 +888,7 @@ function stopPreview(e) {
       }`
     );
   }
-  delete activePads.value["preview"];
-  updateActiveKeys();
-  // Restore now-playing to last active pad (if any), otherwise clear
-  if (lastActiveIdx.value != null && activePads.value[lastActiveIdx.value]) {
-    const idx = lastActiveIdx.value;
-    const nextPad = asPadLike(pads.value[idx]);
-    const nextNotes = activePads.value[idx]?.notes || [];
-    nowPlaying.value = `${toDisplayNotesForPad(nextNotes, nextPad).join(" ")}`;
-  } else {
-    const remaining = Object.keys(activePads.value)
-      .filter((k) => k !== "preview")
-      .map((n) => Number(n))
-      .filter((n) => Number.isInteger(n))
-      .sort((a, b) => a - b);
-    if (remaining.length) {
-      const nextIdx = remaining[remaining.length - 1];
-      lastActiveIdx.value = nextIdx;
-      const nextPad = asPadLike(pads.value[nextIdx]);
-      const nextNotes = activePads.value[nextIdx]?.notes || [];
-      nowPlaying.value = `${toDisplayNotesForPad(nextNotes, nextPad).join(
-        " "
-      )}`;
-    } else {
-      lastActiveIdx.value = null;
-      nowPlaying.value = "";
-    }
-  }
+  previewActive.value = null;
 }
 
 // Safety: stop any sustained notes if the page loses focus or is closed

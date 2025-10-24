@@ -2,31 +2,31 @@
   <div class="top-left">
     <div class="keyboard">
       <div
-        class="key key-c white"
+        class="key key-c key-white"
         :class="{ 'key-played': isKeyActive('c') }"
       ></div>
       <div
-        class="key key-d white"
+        class="key key-d key-white"
         :class="{ 'key-played': isKeyActive('d') }"
       ></div>
       <div
-        class="key key-e white"
+        class="key key-e key-white"
         :class="{ 'key-played': isKeyActive('e') }"
       ></div>
       <div
-        class="key key-f white"
+        class="key key-f key-white"
         :class="{ 'key-played': isKeyActive('f') }"
       ></div>
       <div
-        class="key key-g white"
+        class="key key-g key-white"
         :class="{ 'key-played': isKeyActive('g') }"
       ></div>
       <div
-        class="key key-a white"
+        class="key key-a key-white"
         :class="{ 'key-played': isKeyActive('a') }"
       ></div>
       <div
-        class="key key-b white"
+        class="key key-b key-white"
         :class="{ 'key-played': isKeyActive('b') }"
       ></div>
       <div
