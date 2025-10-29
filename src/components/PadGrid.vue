@@ -28,7 +28,7 @@
         v-if="!(pad?.mode === 'unassigned' || pad?.assigned === false)"
       >
         <button class="pad-edit" @click="$emit('edit', idx)">
-          <Repeat2
+          <Repeat
             class="pad-edit-icon"
             aria-hidden="true"
             :size="14"
@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { IterationCw, Repeat2 } from "lucide-vue-next";
+import { IterationCw, Repeat2, Repeat, Bolt } from "lucide-vue-next";
 const props = defineProps({
   pads: { type: Array, required: true },
   permissionAllowed: { type: Boolean, default: false },

@@ -2,7 +2,24 @@
   <dialog ref="dlg" @click.self="onClose" @cancel.prevent="onClose">
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
-        <!--<h2 class="dialog-title">Edit Pad {{ padIndex + 1 }}</h2>-->
+        <h2 class="dialog-title">Edit Pad {{ padIndex + 1 }}</h2>
+        <button
+          type="button"
+          class="dialog-close"
+          @click="onClose"
+          aria-label="Close"
+        >
+          <X
+            class="dialog-close-icon"
+            aria-hidden="true"
+            :size="14"
+            stroke-width="2"
+          />
+
+          <span class="sr-only">Close</span>
+        </button>
+      </div>
+      <div class="dialog-content">
         <div class="toggle-buttons">
           <label class="toggle-button"
             ><input
@@ -23,31 +40,11 @@
             /><span class="toggle-button-text">Free mode</span>
           </label>
         </div>
-        <button
-          type="button"
-          class="dialog-close"
-          @click="onClose"
-          aria-label="Close"
-        >
-          <X
-            class="dialog-close-icon"
-            aria-hidden="true"
-            :size="14"
-            stroke-width="2"
-          />
-
-          <span class="sr-only">Close</span>
-        </button>
       </div>
       <template v-if="model.mode === 'scale'">
         <div class="dialog-content">
           <p class="global-scale-info color-scale">
-            <Music3
-              aria-hidden="true"
-              :size="14"
-              stroke-width="2"
-              fill="currentColor"
-            />
+            <Music2 aria-hidden="true" :size="14" stroke-width="2" />
 
             Global scale: <span>{{ globalScale }}</span>
             {{ globalScaleType }}
@@ -111,7 +108,7 @@
       </div>
       <div class="dialog-content chord-preview">
         <div class="chord-preview-notes">
-          notes: <span>{{ previewNotesHtml }}</span>
+          Notes: <span>{{ previewNotesHtml }}</span>
         </div>
         <button
           type="button"
@@ -139,7 +136,7 @@
 <script setup>
 import { ref, computed, toRef } from "vue";
 import { X } from "lucide-vue-next";
-import { Music3 } from "lucide-vue-next";
+import { Music2 } from "lucide-vue-next";
 import CustomSelect from "./CustomSelect.vue";
 import {
   computeChordNotesFor,

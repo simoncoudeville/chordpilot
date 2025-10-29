@@ -6,7 +6,7 @@
     />
     <div class="midi-status-container">
       <button
-        class="button midi"
+        class="button md"
         :class="midiEnabled && outputs.length > 0 ? 'valid' : 'warning'"
         type="button"
         @click="openMidiDialog"
@@ -16,16 +16,11 @@
         MIDI
       </button>
       <button
-        class="button icon scale"
+        class="button md icon scale"
         type="button"
         @click="openGlobalKeyDialog"
       >
-        <Music3
-          aria-hidden="true"
-          :size="14"
-          stroke-width="2"
-          fill="currentColor"
-        />
+        <Music2 aria-hidden="true" :size="14" stroke-width="2" />
       </button>
     </div>
   </div>
@@ -102,7 +97,7 @@ import {
   nextTick,
 } from "vue";
 import { WebMidi } from "webmidi";
-import { Music3 } from "lucide-vue-next";
+import { Music3, Music, Music2, Usb } from "lucide-vue-next";
 import { Note, Chord, Key } from "@tonaljs/tonal";
 import {
   pcToCssKey,

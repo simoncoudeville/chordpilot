@@ -97,7 +97,7 @@ select {
   line-height: inherit;
   /* appearance: none; */
   /* padding: 0; */
-  height: var(--space-4);
+  height: var(--space-5);
   padding: 0 var(--space-0-5);
 }
 
@@ -126,7 +126,7 @@ button {
 }
 
 .button.icon {
-  width: var(--space-3);
+  width: var(--space-4);
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -141,17 +141,24 @@ button {
 }
 
 .button.warning {
-  background-color: var(--color-warning);
-  color: var(--color-layer-0);
+  /* background-color: var(--color-warning); */
+  /* color: var(--color-layer-0); */
+  color: var(--color-warning);
 }
 
 .button.scale {
-  background-color: var(--color-scale);
-  color: var(--color-layer-0);
+  /* background-color: var(--color-scale);
+  color: var(--color-layer-0); */
+  color: var(--color-scale);
 }
 
-.button.large {
+.button.md {
   padding: var(--space-0-5) var(--space-1);
+}
+
+.dialog-buttons button,
+.button.large {
+  padding: var(--space-1) var(--space-2);
 }
 
 .button.reversed {
@@ -160,8 +167,9 @@ button {
 }
 
 .button.valid {
-  background-color: var(--color-valid);
-  color: var(--color-layer-0);
+  /* background-color: var(--color-valid);
+  color: var(--color-layer-0); */
+  color: var(--color-valid);
 }
 
 dialog {
@@ -171,12 +179,14 @@ dialog {
   max-width: 100%;
   max-height: 100%;
   margin: auto auto 0;
-  border: 1px solid var(--color-border);
+  border: none;
+  border-top: 1px solid var(--color-border);
   border-radius: 0;
   opacity: 0;
   transform: translateY(calc(var(--space-2) * 1));
   transition: all 0.15s ease;
   transition-behavior: allow-discrete;
+  overflow-x: hidden;
 
   &::backdrop {
     transition: inherit;
@@ -207,12 +217,13 @@ dialog:open {
 
 .dialog-body {
   display: grid;
-  gap: var(--space-2);
-  padding-bottom: var(--space-2);
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
 }
 
 .dialog-top {
-  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2);
+  /* padding: var(--space-1) var(--space-1) var(--space-1) var(--space-2); */
+  padding: var(--space-2) var(--space-2) 0 var(--space-3);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -229,14 +240,17 @@ dialog:open {
 }
 
 .dialog-content {
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-3);
 }
 
 .dialog-buttons {
-  padding: 0 var(--space-2);
+  padding: 0 var(--space-3);
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
+  margin-top: calc(var(--space-1) * -1);
+  margin-bottom: calc(var(--space-1) * -1);
+  margin-right: calc(var(--space-2) * -1);
+  /* gap: var(--space-3); */
 }
 
 .top {
@@ -265,7 +279,7 @@ dialog:open {
 
 .pads {
   --pad-min: 109px;
-  padding: 1px;
+  padding: 0 1px 1px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--pad-min), 1fr));
   gap: 1px;
@@ -288,6 +302,15 @@ dialog:open {
   justify-self: end;
   z-index: 1;
 }
+/* 
+.pad-edit-icon {
+  path {
+    fill: currentColor;
+  }
+  circle: {
+    fill: currentColor;
+  }
+} */
 
 .pad-edit {
   color: var(--color-text-meta);
@@ -346,10 +369,10 @@ dialog:open {
 }
 
 .keyboard {
-  --key-w: calc(6 / var(--font-size) * 1rem); /* white key width */
-  --key-h: calc(21 / var(--font-size) * 1rem); /* white key height */
-  --black-w: calc(5 / var(--font-size) * 1rem); /* black key width */
-  --black-h: calc(12 / var(--font-size) * 1rem); /* black key height */
+  --key-w: calc(7 / var(--font-size) * 1rem); /* white key width */
+  --key-h: calc(28 / var(--font-size) * 1rem); /* white key height */
+  --black-w: calc(6 / var(--font-size) * 1rem); /* black key width */
+  --black-h: calc(18 / var(--font-size) * 1rem); /* black key height */
   --gap: 1px; /* spacing between white keys */
 
   position: relative;
@@ -444,8 +467,8 @@ dialog:open {
 
 .edit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
   align-items: center;
 }
 
@@ -471,19 +494,26 @@ dialog:open {
 
 .toggle-buttons {
   display: flex;
-  gap: var(--space-1);
-  margin-left: calc(var(--space-1) * -1);
+  gap: 1px;
+  /* gap: var(--space-1); */
+  /* margin-left: calc(var(--space-1) * -1); */
+  background-color: var(--color-layer-1);
+  border-radius: var(--radius);
+  padding: 1px;
 }
 
 .toggle-button {
   color: var(--color-text-meta);
   font-weight: 500;
-  padding: var(--space-0-5) var(--space-1);
-  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  flex-basis: 50%;
+  text-align: center;
+  /* border-radius: var(--radius); */
+  border-radius: calc(var(--radius) - 1px);
 
   &:has(.toggle-button-input:checked) {
     color: var(--color-text);
-    background-color: var(--color-layer-1);
+    background-color: var(--color-layer-0);
   }
 }
 
