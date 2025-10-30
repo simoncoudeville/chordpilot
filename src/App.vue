@@ -112,6 +112,7 @@ import {
   inversionIndex,
   rotate,
   toAscendingWithOctave,
+  computeOrderedChordPcs,
 } from "./composables/theory";
 import Keyboard from "./components/Keyboard.vue";
 import PadGrid from "./components/PadGrid.vue";
@@ -642,14 +643,7 @@ function padButtonLabel(pad) {
         }
       : pad;
   const raw = computeChordNotesFor(padLike);
-  const base = computeBaseChordNotesFor(padLike);
-  const invIdx = inversionIndex(
-    pad.mode === "free" ? pad.inversionFree : pad.inversionScale
-  );
-  const rotatedBase = rotate(base, invIdx);
-  const baseSet = new Set(base);
-  const extras = raw.filter((pc) => !baseSet.has(pc));
-  const ordered = rotatedBase.concat(extras);
+  const ordered = computeOrderedChordPcs(padLike);
   const baseOct = Number(
     (pad.mode === "free" ? pad.octaveFree : pad.octaveScale) ?? 4
   );
@@ -699,14 +693,7 @@ function startPad(idx, e) {
         }
       : padOrig;
   const raw = computeChordNotesFor(pad);
-  const base = computeBaseChordNotesFor(pad);
-  const invIdx = inversionIndex(
-    pad.mode === "free" ? pad.inversionFree : pad.inversionScale
-  );
-  const rotatedBase = rotate(base, invIdx);
-  const baseSet = new Set(base);
-  const extras = raw.filter((pc) => !baseSet.has(pc));
-  const ordered = rotatedBase.concat(extras);
+  const ordered = computeOrderedChordPcs(pad);
   const baseOct = Number(
     (pad.mode === "free" ? pad.octaveFree : pad.octaveScale) ?? 4
   );
@@ -822,14 +809,7 @@ function startPreview(e) {
     octaveScale: editOctave.value,
   };
   const raw = computeChordNotesFor(padLike);
-  const base = computeBaseChordNotesFor(padLike);
-  const invIdx = inversionIndex(
-    padLike.mode === "free" ? padLike.inversionFree : padLike.inversionScale
-  );
-  const rotatedBase = rotate(base, invIdx);
-  const baseSet = new Set(base);
-  const extras = raw.filter((pc) => !baseSet.has(pc));
-  const ordered = rotatedBase.concat(extras);
+  const ordered = computeOrderedChordPcs(padLike);
   const baseOct = Number(
     (padLike.mode === "free" ? padLike.octaveFree : padLike.octaveScale) ?? 4
   );

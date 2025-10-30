@@ -285,18 +285,21 @@ export function computeBaseChordNotesFor(pad) {
   // Handle sus by replacing the 3rd with 2 or 4
   if (voicing === "sus2" || voicing === "sus4") {
     const info = Chord.get(baseSymbol);
-    let rootPc = info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : "");
+    let rootPc =
+      info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : "");
     if (rootPc) {
       const second = Note.pitchClass(Note.transpose(rootPc, "2M"));
       const fourth = Note.pitchClass(Note.transpose(rootPc, "4P"));
       const fifth = Note.pitchClass(Note.transpose(rootPc, "5P"));
-      baseNotes = voicing === "sus2" ? [rootPc, second, fifth] : [rootPc, fourth, fifth];
+      baseNotes =
+        voicing === "sus2" ? [rootPc, second, fifth] : [rootPc, fourth, fifth];
     }
   }
   // For add2, place the 2nd right above the root in base ordering
   if (voicing === "add2") {
     const info = Chord.get(baseSymbol);
-    const rootPc = info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : "");
+    const rootPc =
+      info.tonic || (info.notes?.[0] ? Note.pitchClass(info.notes[0]) : "");
     if (rootPc) {
       const second = Note.pitchClass(Note.transpose(rootPc, "2M"));
       const pcs = baseNotes.map((n) => Note.pitchClass(n));
@@ -363,4 +366,37 @@ export function toAscendingWithOctave(pcs, baseOct = 4) {
     result.push(candidate);
   }
   return result;
+}
+
+// Compute ordered pitch classes for a pad's chord using a global, consistent rule:
+// - Build the full root-position stack including tensions (e.g., 1,3,5,7,9,...)
+// - Inversion rotates the FULL stack by moving the last k items to front (k = inversion)
+// - For chords with tensions (9/11/13/add9) and inversion > 0, move the root (1) to the tail
+//   so the root sits at the top of the stack (e.g., Cm9 1st inv => 9,3,5,7,1)
+export function computeOrderedChordPcs(pad) {
+  const full = computeChordNotesFor(pad) || [];
+  const invIdx = inversionIndex(
+    pad.mode === "free" ? pad.inversionFree : pad.inversionScale
+  );
+  const n = full.length || 0;
+  if (n === 0) return full;
+  // rotate right by inv: take last inv items to front
+  const r = (n - (invIdx % n) + n) % n;
+  let rotated = rotate(full, r);
+  // If chord includes tensions and we're inverted, push the root to the end
+  const voicing = pad.mode === "free" ? pad.voicingFree : pad.voicingScale;
+  const hasTensions = ["9", "11", "13", "add9"].includes(String(voicing));
+  if (hasTensions && invIdx > 0) {
+    const rootPc = full[0]; // root-position first element is the root pc
+    const idx = rotated.findIndex(
+      (pc) => pcNumberFromName(pc) === pcNumberFromName(rootPc)
+    );
+    if (idx !== -1 && idx !== rotated.length - 1) {
+      rotated = rotated
+        .slice(0, idx)
+        .concat(rotated.slice(idx + 1))
+        .concat([rotated[idx]]);
+    }
+  }
+  return rotated;
 }

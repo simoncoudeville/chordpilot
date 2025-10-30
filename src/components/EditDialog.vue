@@ -107,6 +107,12 @@
         </label>
       </div>
       <div class="dialog-content chord-preview">
+        <KeyboardExtended
+          :highlighted-notes="previewNotesAsc"
+          :start-octave="2"
+          :octaves="7"
+        />
+
         <div class="chord-preview-notes">
           Notes: <span>{{ previewNotesHtml }}</span>
         </div>
@@ -138,14 +144,17 @@ import { ref, computed, toRef } from "vue";
 import { X } from "lucide-vue-next";
 import { Music2 } from "lucide-vue-next";
 import CustomSelect from "./CustomSelect.vue";
+import KeyboardExtended from "./KeyboardExtended.vue";
 import {
   computeChordNotesFor,
+  computeBaseChordNotesFor,
   inversionIndex,
   rotate,
   toAscendingWithOctave,
   chordDisplayForPad,
   toDisplayNotesForPad,
   normalizePcForKey,
+  computeOrderedChordPcs,
 } from "../composables/theory";
 
 const props = defineProps({
@@ -267,13 +276,7 @@ const previewSymbol = computed(() =>
   chordDisplayForPad(padLikeForPreview.value)
 );
 const previewNotesAsc = computed(() => {
-  const raw = computeChordNotesFor(padLikeForPreview.value);
-  const invIdx = inversionIndex(
-    padLikeForPreview.value.mode === "free"
-      ? padLikeForPreview.value.inversionFree
-      : padLikeForPreview.value.inversionScale
-  );
-  const ordered = rotate(raw, invIdx);
+  const ordered = computeOrderedChordPcs(padLikeForPreview.value) || [];
   const baseOct = Number(
     (padLikeForPreview.value.mode === "free"
       ? padLikeForPreview.value.octaveFree
