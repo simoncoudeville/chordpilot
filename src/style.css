@@ -123,6 +123,11 @@ button {
   padding: 0 var(--space-0-5);
   background-color: var(--color-layer-1);
   color: var(--color-text);
+
+  &:active {
+    background-color: var(--color-layer-2);
+    /* color: var(--color-layer-0); */
+  }
 }
 
 .button.icon {
@@ -374,13 +379,20 @@ dialog:open {
   --black-w: calc(6 / var(--font-size) * 1rem); /* black key width */
   --black-h: calc(18 / var(--font-size) * 1rem); /* black key height */
   --gap: 1px; /* spacing between white keys */
-
-  position: relative;
-  display: inline-block;
-  width: calc(var(--key-w) * 7 + var(--gap) * 6);
-  height: var(--key-h);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+.keyboard-octaves {
+  display: flex;
+  gap: var(--gap);
+}
+
+.keyboard-octave {
+  flex-shrink: 0;
+  position: relative;
+  width: calc(var(--key-w) * 7 + var(--gap) * 6);
+  height: var(--key-h);
 }
 
 .key {
