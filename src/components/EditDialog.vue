@@ -83,7 +83,7 @@
                   :key="ch.degree"
                   :value="ch.degree"
                 >
-                  {{ ch.degree }} — {{ ch.display }}
+                  {{ ch.display || ch.degree }}
                 </option>
               </template>
             </CustomSelect>
@@ -98,7 +98,7 @@
           <CustomSelect v-model="inversionProxy" :options="editInversions" />
         </label>
         <label class="flex-grow-1">
-          <span class="label-text">Register</span>
+          <span class="label-text">Root octave</span>
           <CustomSelect
             v-model="octaveProxy"
             :options="[2, 3, 4, 5, 6]"
@@ -113,6 +113,9 @@
           :octaves="7"
         />
 
+        <div class="chord-preview-symbol">
+          Chord: <span>{{ previewChordHtml }}</span>
+        </div>
         <div class="chord-preview-notes">
           Notes: <span>{{ previewNotesHtml }}</span>
         </div>
@@ -140,26 +143,20 @@
 </template>
 
 <script setup>
-import { ref, computed, toRef } from "vue";
-import { X } from "lucide-vue-next";
-import { Music2 } from "lucide-vue-next";
+import { ref, computed, toRef, watch } from "vue";
+import { X, Music2 } from "lucide-vue-next";
 import CustomSelect from "./CustomSelect.vue";
 import KeyboardExtended from "./KeyboardExtended.vue";
 import {
-  computeChordNotesFor,
-  computeBaseChordNotesFor,
-  inversionIndex,
-  rotate,
-  toAscendingWithOctave,
   chordDisplayForPad,
+  computeVoicingNotes,
   toDisplayNotesForPad,
-  normalizePcForKey,
-  computeOrderedChordPcs,
+  getPadChordMetadata,
 } from "../composables/theory";
 
 const props = defineProps({
   padIndex: { type: Number, default: 0 },
-  modelValue: { type: Object, required: true }, // editModel object
+  modelValue: { type: Object, required: true },
   editScaleTypeModel: { type: String, required: true },
   editVoicingModel: { type: String, required: true },
   editInversionModel: { type: String, required: true },
@@ -185,11 +182,11 @@ const emit = defineEmits([
   "preview-start",
   "preview-stop",
 ]);
+
 const SUPPORTED_VOICINGS = [
   "triad",
   "add2",
   "add9",
-  "6",
   "7",
   "9",
   "11",
@@ -197,25 +194,21 @@ const SUPPORTED_VOICINGS = [
   "sus2",
   "sus4",
 ];
-function allowedVoicingsForChord(chordType) {
-  const t = String(chordType || "").toLowerCase();
-  let list = ["triad"];
-  if (t === "major" || t === "minor") {
-    list = ["triad", "add2", "add9", "6", "7", "9", "11", "13", "sus2", "sus4"];
-  } else if (t === "dominant") {
-    list = ["7", "9", "11", "13", "7sus4", "7alt"];
-  } else if (t === "diminished") {
-    list = ["triad", "7"];
-  } else if (t === "augmented") {
-    list = ["triad", "add9", "maj7"];
-  } else {
-    list = ["triad"];
-  }
-  return list.filter((v) => SUPPORTED_VOICINGS.includes(v));
+
+const VOICINGS_BY_KIND = {
+  major: ["triad", "add2", "add9", "6", "7", "9", "11", "13", "sus2", "sus4"],
+  minor: ["triad", "add2", "add9", "6", "7", "9", "11", "13", "sus2", "sus4"],
+  dominant: ["triad", "7", "9", "11", "13", "sus2", "sus4"],
+  diminished: ["triad", "7"],
+  "half-diminished": ["triad", "7"],
+  augmented: ["triad", "add9", "7"],
+};
+
+function allowedVoicingsForMetadata(meta) {
+  const kind = meta?.kind || "major";
+  const raw = VOICINGS_BY_KIND[kind] || VOICINGS_BY_KIND.major;
+  return raw.filter((v) => SUPPORTED_VOICINGS.includes(v));
 }
-const extensionOptions = computed(() =>
-  allowedVoicingsForChord(scaleTypeProxy.value)
-);
 
 const dlg = ref(null);
 
@@ -251,58 +244,74 @@ function onClose() {
 
 defineExpose({ open, close, dlg });
 
-const hasChordForPreview = computed(() => true);
-
-// --- Preview chord name + notes (mirrors App logic) ---
 const padLikeForPreview = computed(() => {
-  const m = model.value;
-  return {
-    ...m,
-    // Always use global key for scale mode
+  const pad = model.value || {};
+  const mode = pad.mode || "scale";
+  const normalized = {
+    ...pad,
+    mode,
+    assigned: true,
     scale: props.globalScale,
     scaleTypeScale: props.globalScaleType,
-    // Use current edit proxies for mode-specific values
-    voicingFree: voicingProxy.value,
-    voicingScale: voicingProxy.value,
     scaleTypeFree: scaleTypeProxy.value,
-    inversionFree: inversionProxy.value,
+    voicingScale: voicingProxy.value,
+    voicingFree: voicingProxy.value,
     inversionScale: inversionProxy.value,
-    octaveFree: octaveProxy.value,
+    inversionFree: inversionProxy.value,
     octaveScale: octaveProxy.value,
+    octaveFree: octaveProxy.value,
   };
+  if (mode === "scale" && !normalized.degree) {
+    normalized.degree = props.editChordOptions?.[0]?.degree || "I";
+  }
+  if (mode === "free" && !normalized.freeRoot) {
+    normalized.freeRoot = props.globalScale || "C";
+  }
+  return normalized;
 });
 
-const previewSymbol = computed(() =>
-  chordDisplayForPad(padLikeForPreview.value)
+const chordMetadata = computed(() =>
+  getPadChordMetadata(padLikeForPreview.value)
 );
+
+const extensionOptions = computed(() => {
+  const options = allowedVoicingsForMetadata(chordMetadata.value);
+  return options.length ? options : ["triad"];
+});
+
+watch(
+  extensionOptions,
+  (options) => {
+    const list = options && options.length ? options : ["triad"];
+    if (list.includes(voicingProxy.value)) return;
+    voicingProxy.value = list[0];
+  },
+  { immediate: true }
+);
+
 const previewNotesAsc = computed(() => {
-  const ordered = computeOrderedChordPcs(padLikeForPreview.value) || [];
-  const baseOct = Number(
-    (padLikeForPreview.value.mode === "free"
-      ? padLikeForPreview.value.octaveFree
-      : padLikeForPreview.value.octaveScale) ?? 4
-  );
-  return toAscendingWithOctave(ordered, baseOct);
+  const pad = padLikeForPreview.value;
+  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return [];
+  const octRaw = pad.mode === "free" ? pad.octaveFree : pad.octaveScale;
+  const parsed = Number(octRaw);
+  const baseOct = Number.isFinite(parsed) ? parsed : 4;
+  const notes = computeVoicingNotes(pad, baseOct);
+  return notes || [];
 });
 
-const previewSymbolWithBass = computed(() => {
-  const padLike = padLikeForPreview.value;
-  const sym = previewSymbol.value;
-  const bassPc = normalizePcForKey(
-    (previewNotesAsc.value[0] || "").replace(/\d+$/, ""),
-    padLike
-  );
-  const rootPc = normalizePcForKey(
-    (computeChordNotesFor(padLike)[0] || "").replace(/\d+$/, ""),
-    padLike
-  );
-  return bassPc && rootPc && bassPc !== rootPc ? `${sym}/${bassPc}` : sym;
-});
-
-const previewChordHtml = computed(() => previewSymbolWithBass.value);
 const previewNotesHtml = computed(() => {
-  const padLike = padLikeForPreview.value;
-  const notes = toDisplayNotesForPad(previewNotesAsc.value, padLike);
-  return notes.join(" ");
+  const pad = padLikeForPreview.value;
+  if (!previewNotesAsc.value.length) return "—";
+  const display = toDisplayNotesForPad(previewNotesAsc.value, pad);
+  return display.length ? display.join(" ") : "—";
 });
+
+const previewChordHtml = computed(() => {
+  const pad = padLikeForPreview.value;
+  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return "—";
+  const sym = chordDisplayForPad(pad);
+  return sym || "—";
+});
+
+const hasChordForPreview = computed(() => previewNotesAsc.value.length > 0);
 </script>
