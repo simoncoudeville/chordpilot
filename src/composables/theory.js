@@ -1,3 +1,122 @@
+// Apply voicing pattern to a chord note array — extensible engine-based approach
+export function applyVoicingPattern(notes, voicingType) {
+  if (!Array.isArray(notes) || !notes.length) return [];
+  const out = [...notes];
+
+  // Helper: parse note into { head, oct, midi, raw }
+  function parseNote(n) {
+    const s = String(n);
+    const m = s.match(/^(.*?)(-?\d+)$/);
+    const head = m ? m[1] : s;
+    const oct = m ? Number(m[2]) : null;
+    const midi = Note.midi(s);
+    return { head, oct, midi, raw: s };
+  }
+
+  function buildNote(head, oct) {
+    if (oct == null) return head;
+    return `${head}${oct}`;
+  }
+
+  // Operations engine
+  const OPS = {
+    reorder(notesArr, idxProvider) {
+      const idxs =
+        typeof idxProvider === "function" ? idxProvider(notesArr) : idxProvider;
+      return idxs.map((i) => notesArr[i]).filter((x) => x != null);
+    },
+    raiseByOctaves(notesArr, idxs, steps = 1) {
+      const parsed = notesArr.map((n) => parseNote(n));
+      const set = new Set(idxs);
+      return parsed.map((p, i) => {
+        if (!set.has(i) || p.oct == null) return p.raw;
+        return buildNote(p.head, p.oct + steps);
+      });
+    },
+    lowerByOctaves(notesArr, idxs, steps = 1) {
+      const parsed = notesArr.map((n) => parseNote(n));
+      const set = new Set(idxs);
+      return parsed.map((p, i) => {
+        if (!set.has(i) || p.oct == null) return p.raw;
+        return buildNote(p.head, p.oct - steps);
+      });
+    },
+    dropNthHighest(notesArr, n) {
+      if (notesArr.length < n) return notesArr;
+      const parsed = notesArr.map((n) => ({ n, midi: Note.midi(n) }));
+      parsed.sort((a, b) => a.midi - b.midi);
+      const idx = parsed.length - n;
+      const m = parsed[idx].n.match(/^(.*?)(-?\d+)$/);
+      if (m) parsed[idx].n = `${m[1]}${Number(m[2]) - 1}`;
+      return parsed.map((x) => x.n);
+    },
+    alternateOctaves(notesArr) {
+      if (notesArr.length < 2) return notesArr;
+      const parsed = notesArr.map((n) => parseNote(n));
+      const minOct = Math.min(
+        ...parsed.map((p) => (p.oct == null ? Infinity : p.oct))
+      );
+      const maxOct = minOct + 1;
+      return parsed.map((p, i) =>
+        buildNote(p.head, i % 2 === 0 ? minOct : maxOct)
+      );
+    },
+  };
+
+  // Declarative pattern definitions — easy to extend with new ops
+  const PATTERNS = {
+    close: [],
+    open: [
+      {
+        op: "reorder",
+        idxProvider: (arr) =>
+          arr
+            .map((_, i) => i)
+            .filter((_, i) => i % 2 === 0)
+            .concat(arr.map((_, i) => i).filter((_, i) => i % 2 === 1)),
+      },
+      // conditional adjust: if single-octave input then raise odd indices
+      { op: "conditionalRaiseOddsIfSingleOctave", steps: 1 },
+    ],
+    drop2: [{ op: "dropNthHighest", n: 2 }],
+    drop3: [{ op: "dropNthHighest", n: 3 }],
+    spread: [{ op: "alternateOctaves" }],
+  };
+
+  const pattern = PATTERNS[voicingType] || PATTERNS.close;
+
+  // Start with original notes
+  let cur = out.slice();
+
+  for (const step of pattern) {
+    if (!step || !step.op) continue;
+    if (step.op === "reorder") {
+      cur = OPS.reorder(cur, step.idxProvider);
+      continue;
+    }
+    if (step.op === "conditionalRaiseOddsIfSingleOctave") {
+      const parsed = cur.map((n) => parseNote(n));
+      const octSet = new Set(parsed.map((p) => p.oct).filter((x) => x != null));
+      if (octSet.size <= 1) {
+        // raise odd indices
+        const odds = cur.map((_, i) => i).filter((i) => i % 2 === 1);
+        cur = OPS.raiseByOctaves(cur, odds, step.steps || 1);
+      }
+      continue;
+    }
+    if (step.op === "dropNthHighest") {
+      cur = OPS.dropNthHighest(cur, step.n || 2);
+      continue;
+    }
+    if (step.op === "alternateOctaves") {
+      cur = OPS.alternateOctaves(cur);
+      continue;
+    }
+  }
+
+  return cur;
+}
+
 // Shared theory utilities: canonical pitch class naming, enharmonics, formatting
 import { Note, Key, Chord } from "@tonaljs/tonal";
 

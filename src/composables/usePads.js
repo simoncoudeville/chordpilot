@@ -14,12 +14,14 @@ function defaultPad() {
     inversionScale: "root",
     octaveScale: 4,
     degree: "I",
+    voicingPatternScale: "close",
     // free-mode
     freeRoot: "C",
     scaleTypeFree: "major",
     voicingFree: "triad",
     inversionFree: "root",
     octaveFree: 4,
+    voicingPatternFree: "close",
   };
 }
 
@@ -51,6 +53,10 @@ function sanitizePad(p) {
         : d.inversionScale,
     octaveScale: Number.isFinite(oSF) ? oSF : d.octaveScale,
     degree: typeof p?.degree === "string" ? p.degree : d.degree,
+    voicingPatternScale:
+      typeof p?.voicingPatternScale === "string"
+        ? p.voicingPatternScale
+        : d.voicingPatternScale,
     // free-mode
     freeRoot: typeof p?.freeRoot === "string" ? p.freeRoot : d.freeRoot,
     scaleTypeFree: p?.scaleTypeFree === "minor" ? "minor" : "major",
@@ -59,6 +65,10 @@ function sanitizePad(p) {
     inversionFree:
       typeof p?.inversionFree === "string" ? p.inversionFree : d.inversionFree,
     octaveFree: Number.isFinite(oFF) ? oFF : d.octaveFree,
+    voicingPatternFree:
+      typeof p?.voicingPatternFree === "string"
+        ? p.voicingPatternFree
+        : d.voicingPatternFree,
   };
 }
 
@@ -109,5 +119,12 @@ export function usePads() {
     );
   }
 
-  return { pads, setPad, resetPad, rehydrate, persistOnChange, PAD_COUNT };
+  return {
+    pads,
+    setPad,
+    resetPad,
+    rehydrate,
+    persistOnChange,
+    PAD_COUNT,
+  };
 }

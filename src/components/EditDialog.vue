@@ -52,27 +52,7 @@
         </div>
       </template>
       <div class="dialog-content edit-grid">
-        <template v-if="model.mode !== 'scale'">
-          <label>
-            <span class="label-text">Root</span>
-            <CustomSelect
-              v-model="model.freeRoot"
-              :options="MAJOR_KEY_OPTIONS"
-              option-value-key="value"
-              option-label-key="label"
-              wrapper-class="select-scale"
-            />
-          </label>
-        </template>
-        <template v-if="model.mode !== 'scale'">
-          <label>
-            <span class="label-text">Type</span>
-            <CustomSelect
-              v-model="scaleTypeProxy"
-              :options="['major', 'minor']"
-            />
-          </label>
-        </template>
+        <!-- Primary chord selector: degree (scale mode) or root/type (free mode) -->
         <template v-if="model.mode === 'scale'">
           <label class="flex-grow-1">
             <span class="label-text">Chord</span>
@@ -89,20 +69,57 @@
             </CustomSelect>
           </label>
         </template>
-        <label class="flex-grow-1">
-          <span class="label-text">Extension</span>
-          <CustomSelect v-model="voicingProxy" :options="extensionOptions" />
-        </label>
-        <label class="flex-grow-1">
-          <span class="label-text">Inversion</span>
-          <CustomSelect v-model="inversionProxy" :options="editInversions" />
-        </label>
+        <template v-else>
+          <label>
+            <span class="label-text">Root</span>
+            <CustomSelect
+              v-model="model.freeRoot"
+              :options="MAJOR_KEY_OPTIONS"
+              option-value-key="value"
+              option-label-key="label"
+              wrapper-class="select-scale"
+            />
+          </label>
+          <label>
+            <span class="label-text">Type</span>
+            <CustomSelect
+              v-model="scaleTypeProxy"
+              :options="['major', 'minor']"
+            />
+          </label>
+        </template>
+
+        <!-- Root octave always active -->
         <label class="flex-grow-1">
           <span class="label-text">Root octave</span>
           <CustomSelect
             v-model="octaveProxy"
             :options="[2, 3, 4, 5, 6]"
             :cast-number="true"
+          />
+        </label>
+
+        <!-- Chord type / extension -->
+        <label class="flex-grow-1">
+          <span class="label-text">Extension</span>
+          <CustomSelect v-model="voicingProxy" :options="extensionOptions" />
+        </label>
+
+        <!-- Inversion then Voicing pattern -->
+        <label class="flex-grow-1">
+          <span class="label-text">Inversion</span>
+          <CustomSelect
+            v-model="inversionProxy"
+            :options="editInversions"
+            :disabled="!voicingProxy || isNonTertianChord"
+          />
+        </label>
+        <label class="flex-grow-1">
+          <span class="label-text">Voicing</span>
+          <CustomSelect
+            v-model="selectedVoicingType"
+            :options="voicingTypeOptions"
+            :disabled="isNonTertianChord || !voicingProxy"
           />
         </label>
       </div>
@@ -123,10 +140,30 @@
           type="button"
           class="button large preview"
           :disabled="!permissionAllowed || !midiEnabled || !hasChordForPreview"
-          @pointerdown.prevent.stop="$emit('preview-start', $event)"
-          @pointerup.prevent.stop="$emit('preview-stop', $event)"
-          @pointerleave.prevent.stop="$emit('preview-stop', $event)"
-          @pointercancel.prevent.stop="$emit('preview-stop', $event)"
+          @pointerdown.prevent.stop="
+            $emit('preview-start', {
+              event: $event,
+              voicingType: selectedVoicingType,
+            })
+          "
+          @pointerup.prevent.stop="
+            $emit('preview-stop', {
+              event: $event,
+              voicingType: selectedVoicingType,
+            })
+          "
+          @pointerleave.prevent.stop="
+            $emit('preview-stop', {
+              event: $event,
+              voicingType: selectedVoicingType,
+            })
+          "
+          @pointercancel.prevent.stop="
+            $emit('preview-stop', {
+              event: $event,
+              voicingType: selectedVoicingType,
+            })
+          "
           @contextmenu.prevent
         >
           Preview
@@ -143,6 +180,15 @@
 </template>
 
 <script setup>
+import { applyVoicingPattern } from "../composables/theory";
+const voicingTypeOptions = ["close", "open", "drop2", "drop3", "spread"];
+const selectedVoicingType = ref("close");
+
+const nonTertianTypes = ["add2", "add9", "sus2", "sus4"];
+const isNonTertianChord = computed(() =>
+  nonTertianTypes.includes(voicingProxy.value)
+);
+
 import { ref, computed, toRef, watch } from "vue";
 import { X, Music2 } from "lucide-vue-next";
 import CustomSelect from "./CustomSelect.vue";
@@ -289,14 +335,67 @@ watch(
   { immediate: true }
 );
 
-const previewNotesAsc = computed(() => {
+// When the chord type (extension) changes, reset inversion and voicing pattern
+watch(
+  () => voicingProxy.value,
+  (val, old) => {
+    if (val === old) return;
+    // Reset inversion to root and voicing pattern to close
+    inversionProxy.value = "root";
+    selectedVoicingType.value = "close";
+    // Emit updated model; inversionProxy and selectedVoicingType watchers
+    // will sync the values back into the parent model.
+  }
+);
+
+// Sync voicing pattern to pad model
+watch(selectedVoicingType, (val) => {
+  if (model.value.mode === "free") {
+    model.value.voicingPatternFree = val;
+  } else {
+    model.value.voicingPatternScale = val;
+  }
+  emit("update:modelValue", { ...model.value });
+});
+
+// Initialize the selector from the pad model when the dialog is opened/updated.
+// This prevents the selector from retaining a previous value when editing
+// different pads (the dialog component is reused for all pads).
+watch(
+  () => model.value,
+  (m) => {
+    if (!m) return;
+    // Initialize from the correct voicing pattern property based on mode.
+    // Don't overwrite the selector when unrelated model fields change.
+    const voicingPattern =
+      m.mode === "free" ? m.voicingPatternFree : m.voicingPatternScale;
+    if (voicingPattern != null && voicingPattern !== "") {
+      selectedVoicingType.value = voicingPattern;
+    } else if (!selectedVoicingType.value) {
+      // Only default to 'close' if the selector hasn't been set yet.
+      selectedVoicingType.value = "close";
+    }
+  },
+  { immediate: true }
+);
+
+import { watchEffect, ref as vueRef } from "vue";
+const previewNotesAsc = vueRef([]);
+watchEffect(() => {
   const pad = padLikeForPreview.value;
-  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return [];
+  if (!pad || pad.mode === "unassigned" || pad.assigned === false) {
+    previewNotesAsc.value = [];
+    return;
+  }
   const octRaw = pad.mode === "free" ? pad.octaveFree : pad.octaveScale;
   const parsed = Number(octRaw);
   const baseOct = Number.isFinite(parsed) ? parsed : 4;
-  const notes = computeVoicingNotes(pad, baseOct);
-  return notes || [];
+  let notes = computeVoicingNotes(pad, baseOct);
+  // Apply voicing pattern unless non-tertian
+  if (!isNonTertianChord.value) {
+    notes = applyVoicingPattern(notes, selectedVoicingType.value);
+  }
+  previewNotesAsc.value = notes || [];
 });
 
 const previewNotesHtml = computed(() => {

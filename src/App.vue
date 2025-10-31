@@ -115,6 +115,7 @@ import {
   MAJOR_DEGREES,
   MINOR_DEGREES,
   getPadChordMetadata,
+  applyVoicingPattern,
 } from "./composables/theory";
 
 const INVERSION_LABELS = [
@@ -179,6 +180,9 @@ const editDialogRef = ref(null);
 const midiDialogRef = ref(null);
 const globalKeyDialogRef = ref(null);
 
+// Per-pad voicing type (not stored in pad model by default)
+const padVoicingTypes = ref([]);
+
 const midiModelOutputId = ref("");
 const midiModelOutCh = ref(1);
 const isMidiDirty = computed(() => {
@@ -207,7 +211,7 @@ function labelForPadLike(padLike) {
   return symbol || "Custom";
 }
 
-function buildPadInfo(rawPad) {
+function buildPadInfo(rawPad, idx = null) {
   const padLike = asPadLike(rawPad);
   if (!padLike || padLike.mode === "unassigned" || padLike.assigned === false)
     return null;
@@ -216,9 +220,23 @@ function buildPadInfo(rawPad) {
   const parsedOct = Number(baseOctaveRaw);
   const baseOctave = Number.isFinite(parsedOct) ? parsedOct : 4;
   const orderedPcs = computeOrderedChordPcs(padLike) || [];
-  const notes = orderedPcs.length
-    ? computeVoicingNotes(padLike, baseOctave)
-    : [];
+  let notes = orderedPcs.length ? computeVoicingNotes(padLike, baseOctave) : [];
+
+  // Determine voicingType from the new pad properties
+  let voicingType =
+    padLike.mode === "free"
+      ? padLike.voicingPatternFree
+      : padLike.voicingPatternScale;
+  if (!voicingType) voicingType = "close";
+
+  // Apply voicing pattern unless the chord is non-tertian (add2/add9/sus)
+  const nonTertian = ["add2", "add9", "sus2", "sus4"];
+  const padVoicingName =
+    padLike.mode === "free" ? padLike.voicingFree : padLike.voicingScale;
+  if (!nonTertian.includes(padVoicingName)) {
+    notes = applyVoicingPattern(notes, voicingType);
+  }
+
   const displayNotes = toDisplayNotesForPad(notes, padLike);
   const cssKeys = orderedPcs.map((pc) => pcToCssKey(pc));
   const label = labelForPadLike(padLike);
@@ -390,12 +408,14 @@ function defaultChord() {
     voicingScale: "triad",
     inversionScale: "root",
     octaveScale: 4,
+    voicingPatternScale: "close",
     degree: "I",
     freeRoot: "C",
     scaleTypeFree: "major",
     voicingFree: "triad",
     inversionFree: "root",
     octaveFree: 4,
+    voicingPatternFree: "close",
     assigned: false,
   };
 }
@@ -467,6 +487,7 @@ const editScaleType = computed({
 
 const editVoicing = computed({
   get: () =>
+    // Set voicing type for edit dialog
     editModel.value.mode === "free"
       ? editModel.value.voicingFree
       : editModel.value.voicingScale,
@@ -514,6 +535,8 @@ const isEditDirty = computed(() => {
     pad.degree !== model.degree ||
     pad.voicingScale !== model.voicingScale ||
     pad.voicingFree !== model.voicingFree ||
+    pad.voicingPatternScale !== model.voicingPatternScale ||
+    pad.voicingPatternFree !== model.voicingPatternFree ||
     pad.inversionScale !== model.inversionScale ||
     pad.inversionFree !== model.inversionFree ||
     Number(pad.octaveScale) !== Number(model.octaveScale) ||
@@ -627,12 +650,26 @@ function openEdit(idx) {
     scaleTypeScale: globalScaleType.value,
     assigned: true,
   };
+  // Ensure editModel carries the pad's persisted voicingType (if any)
+  // so the dialog initializes correctly.
+  try {
+    editModel.value.voicingType =
+      pad.voicingType || padVoicingTypes.value[idx] || "close";
+  } catch {}
   nextTick(() => {
     if (isUnassigned) {
       editModel.value.degree = editChordOptions.value?.[0]?.degree || "I";
       editModel.value.inversionScale = "root";
       editModel.value.inversionFree = "root";
     }
+    // Ensure per-pad voicing cache tracks the pad's current voicing.
+    // Only use the explicit `voicingType` field; do not map chord extension
+    // fields (voicingFree / voicingScale) into the voicing pattern selector.
+    try {
+      const savedVoicing = editModel.value.voicingType || "close";
+      padVoicingTypes.value[currentEditIndex.value] = savedVoicing;
+    } catch {}
+
     editDialogRef.value?.open?.();
   });
 }
@@ -645,7 +682,18 @@ function closeEdit() {
 }
 
 function saveEdit() {
-  setPad(currentEditIndex.value, { ...editModel.value, assigned: true });
+  // Persist the voicing choice into the saved pad so playback uses it later.
+  const modelCopy = { ...editModel.value };
+  // Persist only the explicit voicingType field (do not derive from extension)
+  const persistedVoicing = modelCopy.voicingType || "close";
+  modelCopy.voicingType = persistedVoicing;
+
+  // Also cache it in the runtime per-pad voicing array so UI reflects it
+  try {
+    padVoicingTypes.value[currentEditIndex.value] = persistedVoicing;
+  } catch {}
+
+  setPad(currentEditIndex.value, { ...modelCopy, assigned: true });
   closeEdit();
 }
 
@@ -675,7 +723,7 @@ function startPad(idx, e) {
   const padOrig = pads.value[idx];
   if (!padOrig || padOrig.mode === "unassigned" || padOrig.assigned === false)
     return;
-  const info = buildPadInfo(padOrig);
+  const info = buildPadInfo(padOrig, idx);
   if (!info || !info.notes.length) return;
   const sel = getSelectedChannel();
   try {
@@ -725,11 +773,22 @@ function stopPad(idx, e) {
 
 function startPreview(e) {
   if (previewActive.value) return;
-  const info = buildPadInfo(editModel.value);
+  // Accept voicingType from event payload
+  let voicingType = "close";
+  let eventObj = e;
+  if (e && typeof e === "object" && "voicingType" in e) {
+    voicingType = e.voicingType?.value || e.voicingType || "close";
+    eventObj = e.event || e;
+  }
+  // Always use voicingType from event payload for preview
+  const info = buildPadInfo(
+    { ...editModel.value, voicingType },
+    currentEditIndex.value
+  );
   if (!info || !info.notes.length) return;
   const sel = getSelectedChannel();
   try {
-    e?.target?.setPointerCapture?.(e.pointerId);
+    eventObj?.target?.setPointerCapture?.(eventObj.pointerId);
   } catch {}
   if (sel) {
     const channel = sel.output?.channels?.[sel.chNum];
@@ -750,8 +809,12 @@ function startPreview(e) {
 function stopPreview(e) {
   const active = previewActive.value;
   if (!active) return;
+  let eventObj = e;
+  if (e && typeof e === "object" && "event" in e) {
+    eventObj = e.event || e;
+  }
   try {
-    e?.target?.releasePointerCapture?.(e.pointerId);
+    eventObj?.target?.releasePointerCapture?.(eventObj.pointerId);
   } catch {}
   if (active.outputId && active.channel != null) {
     const output = WebMidi.outputs.find((o) => o.id === active.outputId);
