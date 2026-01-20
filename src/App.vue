@@ -123,6 +123,9 @@
     :model-scale="globalScale"
     :model-type="globalScaleType"
     :model-enabled="globalScaleEnabled"
+    :model-tempo="tempo"
+    :model-tempo-midi-sync="tempoMidiSync"
+    :midi-enabled="midiEnabled"
     :scale-pad-count="scaleModePadCount"
     @close="onCloseGlobalKey"
     @save="saveGlobalKey"
@@ -294,6 +297,10 @@ const globalScale = ref("C");
 const globalScaleType = ref("major");
 const globalScaleEnabled = ref(true);
 
+// Tempo state
+const tempo = ref(120); // BPM
+const tempoMidiSync = ref(false); // Enable MIDI tempo sync
+
 const preferredGlobalScaleRoot = computed(() =>
   preferredScaleRoot(globalScale.value, globalScaleType.value)
 );
@@ -326,6 +333,10 @@ function loadGlobalScaleSettings() {
       if (obj.type) globalScaleType.value = obj.type;
       if (typeof obj.enabled === "boolean")
         globalScaleEnabled.value = obj.enabled;
+      if (typeof obj.tempo === "number" && obj.tempo >= 20 && obj.tempo <= 300)
+        tempo.value = obj.tempo;
+      if (typeof obj.tempoMidiSync === "boolean")
+        tempoMidiSync.value = obj.tempoMidiSync;
     }
   } catch {}
 }
@@ -339,6 +350,8 @@ function saveGlobalScaleSettings() {
         scale: globalScale.value,
         type: globalScaleType.value,
         enabled: globalScaleEnabled.value,
+        tempo: tempo.value,
+        tempoMidiSync: tempoMidiSync.value,
       })
     );
   } catch {}
@@ -561,7 +574,7 @@ function confirmDeletePad() {
   resetDeleteDialogState();
 }
 
-function saveGlobalKey({ scale, type, enabled }) {
+function saveGlobalKey({ scale, type, enabled, tempo: newTempo, tempoMidiSync: newTempoMidiSync }) {
   const wasEnabled = globalScaleEnabled.value;
   const changed =
     String(scale) !== String(globalScale.value) ||
@@ -616,6 +629,12 @@ function saveGlobalKey({ scale, type, enabled }) {
   globalScale.value = scale;
   globalScaleType.value = type;
   globalScaleEnabled.value = enabled;
+  if (typeof newTempo === "number" && newTempo >= 20 && newTempo <= 300) {
+    tempo.value = newTempo;
+  }
+  if (typeof newTempoMidiSync === "boolean") {
+    tempoMidiSync.value = newTempoMidiSync;
+  }
   saveGlobalScaleSettings();
 }
 
