@@ -132,6 +132,16 @@
               />
             </label>
           </div>
+          <div class="dialog-content">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="singleChordModeProxy"
+                class="checkbox-input"
+              />
+              <span>Single-chord mode (stop previous chord when playing new one)</span>
+            </label>
+          </div>
           <div class="dialog-buttons">
             <button class="button" type="button" @click="onClose">
               Cancel
@@ -185,6 +195,16 @@
               />
             </label>
           </div>
+          <div class="dialog-content">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="singleChordModeProxy"
+                class="checkbox-input"
+              />
+              <span>Single-chord mode (stop previous chord when playing new one)</span>
+            </label>
+          </div>
           <div class="dialog-buttons">
             <button class="button" type="button" @click="onClose">
               Cancel
@@ -215,6 +235,7 @@ const props = defineProps({
   outputs: { type: Array, default: () => [] },
   midiModelOutputId: { type: String, default: "" },
   midiModelOutCh: { type: Number, default: 1 },
+  singleChordMode: { type: Boolean, default: false },
   statusDisplay: { type: String, default: "" },
   isMidiDirty: { type: Boolean, default: false },
   permission: { type: String, default: "unknown" },
@@ -224,6 +245,7 @@ const props = defineProps({
 const emit = defineEmits([
   "update:midiModelOutputId",
   "update:midiModelOutCh",
+  "update:singleChordMode",
   "save",
   "close",
   "rescan",
@@ -237,12 +259,14 @@ const dlg = ref(null);
 const baseline = ref({
   outputId: null,
   outCh: 1,
+  singleChordMode: false,
   initialized: false,
 });
 
 function syncBaselineToProps() {
   baseline.value.outputId = normId(props.midiModelOutputId);
   baseline.value.outCh = Number(props.midiModelOutCh) || 1;
+  baseline.value.singleChordMode = Boolean(props.singleChordMode);
 }
 
 const outputIdProxy = computed({
@@ -252,6 +276,10 @@ const outputIdProxy = computed({
 const outChProxy = computed({
   get: () => props.midiModelOutCh,
   set: (val) => emit("update:midiModelOutCh", val),
+});
+const singleChordModeProxy = computed({
+  get: () => props.singleChordMode,
+  set: (val) => emit("update:singleChordMode", val),
 });
 
 // Step 1: Permission-only mode when MIDI access is not granted and not enabled yet
@@ -265,6 +293,7 @@ function open() {
   baseline.value = {
     outputId: normId(props.midiModelOutputId),
     outCh: Number(props.midiModelOutCh) || 1,
+    singleChordMode: Boolean(props.singleChordMode),
     initialized: true,
   };
 }
@@ -285,9 +314,11 @@ const internalDirty = computed(() => {
   if (!baseline.value.initialized) return false;
   const curId = normId(outputIdProxy.value);
   const curCh = Number(outChProxy.value) || 1;
+  const curSingleChord = Boolean(props.singleChordMode);
   const baseId = baseline.value.outputId ?? null;
   const baseCh = Number(baseline.value.outCh) || 1;
-  return curId !== baseId || curCh !== baseCh;
+  const baseSingleChord = Boolean(baseline.value.singleChordMode);
+  return curId !== baseId || curCh !== baseCh || curSingleChord !== baseSingleChord;
 });
 
 // If parent already computed isMidiDirty, combine with our internal check
@@ -316,6 +347,7 @@ function onSave() {
   // Refresh baseline so subsequent changes re-evaluate correctly
   baseline.value.outputId = normId(outputIdProxy.value);
   baseline.value.outCh = Number(outChProxy.value) || 1;
+  baseline.value.singleChordMode = Boolean(props.singleChordMode);
 }
 
 function enableMidiWithTransition() {
@@ -330,3 +362,19 @@ function enableMidiWithTransition() {
 
 defineExpose({ open, close, dlg });
 </script>
+
+<style scoped>
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-input {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+}
+</style>

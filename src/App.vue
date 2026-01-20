@@ -108,6 +108,7 @@
     :permission-prompt="permissionPrompt"
     v-model:midi-model-output-id="midiModelOutputId"
     v-model:midi-model-out-ch="midiModelOutCh"
+    v-model:single-chord-mode="singleChordMode"
     :status-display="statusDisplay"
     :is-midi-dirty="isMidiDirty"
     @save="saveMidiDialog"
@@ -242,6 +243,7 @@ const {
   outputs,
   selectedOutputId,
   selectedOutCh,
+  singleChordMode,
   permissionAllowed: permissionAllowedMidi,
   permissionPrompt: permissionPromptMidi,
   midiWasConnected,
@@ -1084,6 +1086,17 @@ const padSchedules = reactive({});
 
 function onStartPad(idx, e, coords) {
   try {
+    // If single-chord mode is enabled, stop all other playing pads
+    if (singleChordMode.value) {
+      Object.keys(activePadNotes).forEach((padIdx) => {
+        const padIdxNum = Number(padIdx);
+        // Only stop other pads, not the current one
+        if (padIdxNum !== idx && activePadNotes[padIdx]?.length > 0) {
+          onStopPad(padIdxNum);
+        }
+      });
+    }
+
     // Clear any existing state for this pad
     if (padTimers[idx]) {
       padTimers[idx].forEach((id) => clearTimeout(id));
