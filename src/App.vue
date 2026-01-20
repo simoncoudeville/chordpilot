@@ -706,6 +706,7 @@ function defaultPad() {
       x: "none",
       y: "none",
     },
+    velocities: [], // Individual note velocities (0-127), defaults to 127 if empty
   };
 }
 
@@ -1180,6 +1181,10 @@ function onStartPad(idx, e, coords) {
       // Clamp velocity
       vel = Math.max(0.01, Math.min(1, vel));
 
+      // Apply individual note velocity (0-127, default 127)
+      const noteVelocity = pad.velocities?.[i] ?? 127;
+      vel = vel * (noteVelocity / 127);
+
       // Calculate exact MIDI timestamp for this note
       let noteTime = now + i * strumStep;
 
@@ -1311,14 +1316,16 @@ function onPreviewStart(payload) {
     const ch = sel?.ch;
     if (!ch) return;
     activePreviewNotes.value = notes.slice();
-    try {
-      ch.playNote(notes);
-    } catch {
-      for (const n of notes) {
-        try {
-          ch.playNote(n);
-        } catch {}
-      }
+
+    const velocities = Array.isArray(payload?.velocities) ? payload.velocities : [];
+
+    // Play notes with individual velocities
+    for (let i = 0; i < notes.length; i++) {
+      try {
+        const velocity = velocities[i] ?? 127;
+        const vel = velocity / 127; // Convert 0-127 to 0-1
+        ch.playNote(notes[i], { attack: vel });
+      } catch {}
     }
   } catch {}
 }

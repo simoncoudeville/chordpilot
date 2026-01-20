@@ -208,6 +208,33 @@
           </button>
         </div>
       </div>
+      <div v-if="hasChordForPreview" class="dialog-content">
+        <div class="velocity-section">
+          <h3 class="velocity-title">Note Velocities</h3>
+          <div class="velocity-sliders">
+            <div
+              v-for="(note, i) in previewNotesPlayable"
+              :key="i"
+              class="velocity-slider-wrapper"
+            >
+              <label class="velocity-slider-label">
+                <span class="velocity-note-name">{{
+                  formatNoteName(note, globalScaleRoot, globalScaleType)
+                }}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="127"
+                  :value="getVelocity(i)"
+                  @input="setVelocity(i, $event.target.value)"
+                  class="velocity-slider"
+                />
+                <span class="velocity-value">{{ getVelocity(i) }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="dialog-content">
         <hr />
       </div>
@@ -319,6 +346,8 @@ const stateSettings = reactive({
   x: "none",
   y: "none",
 });
+
+const stateVelocities = ref([]);
 
 const previousScaleExtension = ref(DEFAULT_EXTENSION);
 const previousFreeExtension = ref(DEFAULT_EXTENSION);
@@ -1180,6 +1209,7 @@ function onPreviewPressStart(event) {
   emit("preview-start", {
     event,
     notes: previewNotesPlayable.value,
+    velocities: stateVelocities.value.slice(),
   });
 }
 
@@ -1434,6 +1464,18 @@ watch(
   { immediate: true }
 );
 
+// --- Velocity support ---
+function getVelocity(index) {
+  return stateVelocities.value[index] ?? 127;
+}
+
+function setVelocity(index, value) {
+  const numValue = Number(value);
+  if (!Number.isFinite(numValue)) return;
+  const clamped = Math.max(0, Math.min(127, Math.round(numValue)));
+  stateVelocities.value[index] = clamped;
+}
+
 defineExpose({ open, close, dlg, resetToDefaults });
 
 // --- Saving support ---
@@ -1460,6 +1502,7 @@ function buildPadSnapshot() {
       x: stateSettings.x,
       y: stateSettings.y,
     },
+    velocities: stateVelocities.value.slice(),
   };
 }
 
@@ -1519,6 +1562,13 @@ function applyPadState(s) {
     stateSettings.y = "none";
   }
 
+  // Load velocities (backward compatible - defaults to 127 if not present)
+  if (Array.isArray(s.velocities)) {
+    stateVelocities.value = s.velocities.slice();
+  } else {
+    stateVelocities.value = [];
+  }
+
   previousScaleExtension.value = stateScale.extension;
   previousFreeExtension.value = stateFree.extension;
 
@@ -1558,6 +1608,7 @@ const isDirty = computed(() => {
       x: stateSettings.x,
       y: stateSettings.y,
     },
+    velocities: stateVelocities.value.slice(),
   };
   const base = {
     mode: s.mode ?? "scale",
@@ -1580,6 +1631,7 @@ const isDirty = computed(() => {
       x: s?.settings?.x ?? "none",
       y: s?.settings?.y ?? "none",
     },
+    velocities: Array.isArray(s?.velocities) ? s.velocities.slice() : [],
   };
   try {
     return JSON.stringify(current) !== JSON.stringify(base);
@@ -1588,3 +1640,87 @@ const isDirty = computed(() => {
   }
 });
 </script>
+
+<style scoped>
+.velocity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.velocity-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.velocity-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.velocity-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.velocity-slider-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.velocity-note-name {
+  min-width: 3rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.velocity-slider {
+  flex: 1;
+  height: 0.5rem;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.velocity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.velocity-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.velocity-slider:hover::-webkit-slider-thumb {
+  background: rgba(255, 255, 255, 1);
+}
+
+.velocity-slider:hover::-moz-range-thumb {
+  background: rgba(255, 255, 255, 1);
+}
+
+.velocity-value {
+  min-width: 2.5rem;
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+</style>
