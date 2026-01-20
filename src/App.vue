@@ -37,6 +37,19 @@
       <button
         class="icon-button"
         type="button"
+        @click="openPresetDialog"
+        aria-label="Save and load presets"
+      >
+        <Save
+          aria-hidden="true"
+          :stroke-width="1.5"
+          :size="20"
+          :absoluteStrokeWidth="true"
+        />
+      </button>
+      <button
+        class="icon-button"
+        type="button"
         @click="openInfoDialog"
         aria-label="App information"
       >
@@ -129,12 +142,22 @@
     @cancel="cancelDeletePad"
     @close="onClosePadDeleteDialog"
   />
+  <PresetDialog
+    ref="presetDialogRef"
+    :presets="presets"
+    @save-preset="savePreset"
+    @load-preset="loadPreset"
+    @delete-preset="deletePreset"
+    @export-presets="exportPresets"
+    @import-presets="importPresets"
+    @close="onClosePresetDialog"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import { Music2, BadgeInfo, OctagonAlert } from "lucide-vue-next";
+import { Music2, BadgeInfo, OctagonAlert, Save } from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
 
 // Icon data for custom Midi icon
@@ -193,6 +216,7 @@ import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
 import PadDeleteDialog from "./components/PadDeleteDialog.vue";
+import PresetDialog from "./components/PresetDialog.vue";
 import { useMidi } from "./composables/useMidi";
 import { Scale, Note } from "@tonaljs/tonal";
 import {
@@ -241,6 +265,7 @@ const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
 const padDeleteDialogRef = ref(null);
+const presetDialogRef = ref(null);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
@@ -317,6 +342,119 @@ function saveGlobalScaleSettings() {
   } catch {}
 }
 
+// Preset management
+const PRESETS_KEY = "chordboard:presets";
+const presets = ref([]);
+
+function loadPresets() {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      presets.value = parsed;
+    }
+  } catch {}
+}
+
+function savePresetsToStorage() {
+  try {
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets.value));
+  } catch {}
+}
+
+function savePreset(name) {
+  const preset = {
+    id: Date.now().toString(),
+    name,
+    timestamp: new Date().toISOString(),
+    pads: JSON.parse(JSON.stringify(pads.value)),
+    globalScale: {
+      scale: globalScale.value,
+      type: globalScaleType.value,
+      enabled: globalScaleEnabled.value,
+    },
+  };
+  presets.value.push(preset);
+  savePresetsToStorage();
+}
+
+function loadPreset(preset) {
+  if (!preset) return;
+
+  // Load pads configuration
+  if (preset.pads && Array.isArray(preset.pads)) {
+    pads.value = preset.pads.map((p, i) =>
+      p ? { ...defaultPad(), ...p } : defaultPad()
+    );
+    savePads();
+  }
+
+  // Load global scale settings
+  if (preset.globalScale) {
+    if (preset.globalScale.scale) globalScale.value = preset.globalScale.scale;
+    if (preset.globalScale.type) globalScaleType.value = preset.globalScale.type;
+    if (typeof preset.globalScale.enabled === "boolean") {
+      globalScaleEnabled.value = preset.globalScale.enabled;
+    }
+    saveGlobalScaleSettings();
+  }
+
+  // Clear visual display
+  clearVisualDisplay();
+}
+
+function deletePreset(id) {
+  presets.value = presets.value.filter((p) => p.id !== id);
+  savePresetsToStorage();
+}
+
+function exportPresets() {
+  if (presets.value.length === 0) return;
+
+  const dataStr = JSON.stringify(presets.value, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `chordboard-presets-${new Date().toISOString().split("T")[0]}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function importPresets(data) {
+  try {
+    if (!Array.isArray(data)) {
+      alert("Invalid preset file format.");
+      return;
+    }
+
+    // Validate and merge imported presets
+    const validPresets = data.filter(
+      (p) => p && p.id && p.name && p.pads && Array.isArray(p.pads)
+    );
+
+    if (validPresets.length === 0) {
+      alert("No valid presets found in the file.");
+      return;
+    }
+
+    // Merge with existing presets (avoid duplicates by ID)
+    const existingIds = new Set(presets.value.map((p) => p.id));
+    const newPresets = validPresets.filter((p) => !existingIds.has(p.id));
+
+    presets.value.push(...newPresets);
+    savePresetsToStorage();
+
+    alert(`Successfully imported ${newPresets.length} preset(s).`);
+  } catch (error) {
+    alert("Failed to import presets.");
+    console.error("Import error:", error);
+  }
+}
+
 function openEditDialog(idx) {
   clearVisualDisplay();
   currentPadIndex.value = idx;
@@ -345,6 +483,15 @@ function onCloseGlobalKey() {}
 function openInfoDialog() {
   clearVisualDisplay();
   infoDialogRef.value?.open?.();
+}
+
+function openPresetDialog() {
+  clearVisualDisplay();
+  presetDialogRef.value?.open?.();
+}
+
+function onClosePresetDialog() {
+  presetDialogRef.value?.close?.();
 }
 
 function onCloseInfo() {}
@@ -611,6 +758,7 @@ onMounted(() => {
   updatePermissionStatus();
   loadGlobalScaleSettings();
   loadPads();
+  loadPresets();
   checkChangelog();
 });
 
