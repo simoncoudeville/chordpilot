@@ -235,6 +235,37 @@
           </div>
         </div>
       </div>
+      <div v-if="hasChordForPreview" class="dialog-content">
+        <div class="arpeggiator-section">
+          <h3 class="arpeggiator-title">Arpeggiator</h3>
+          <div class="arpeggiator-controls">
+            <label class="arpeggiator-enable">
+              <input type="checkbox" v-model="stateArpeggiator.enabled" />
+              <span>Enable Arpeggiator</span>
+            </label>
+            <div v-if="stateArpeggiator.enabled" class="arpeggiator-options">
+              <label class="arpeggiator-option">
+                <span class="label-text">Pattern</span>
+                <CustomSelect
+                  v-model="stateArpeggiator.pattern"
+                  :options="arpeggiatorPatternOptions"
+                  option-value-key="value"
+                  option-label-key="label"
+                />
+              </label>
+              <label class="arpeggiator-option">
+                <span class="label-text">Rate</span>
+                <CustomSelect
+                  v-model="stateArpeggiator.rate"
+                  :options="arpeggiatorRateOptions"
+                  option-value-key="value"
+                  option-label-key="label"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="dialog-content">
         <hr />
       </div>
@@ -348,6 +379,12 @@ const stateSettings = reactive({
 });
 
 const stateVelocities = ref([]);
+
+const stateArpeggiator = reactive({
+  enabled: false,
+  pattern: "up",
+  rate: "eighth",
+});
 
 const previousScaleExtension = ref(DEFAULT_EXTENSION);
 const previousFreeExtension = ref(DEFAULT_EXTENSION);
@@ -624,6 +661,28 @@ const EXPRESSION_OPTIONS = [
   { value: "strum", label: "Strum" },
   { value: "aftertouch", label: "Aftertouch" },
   { value: "humanization", label: "Humanization" },
+];
+
+const arpeggiatorPatternOptions = [
+  { value: "up", label: "Up" },
+  { value: "down", label: "Down" },
+  { value: "up&down", label: "Up & Down" },
+  { value: "random", label: "Random" },
+  { value: "up-2oct", label: "Up (2 Octaves)" },
+  { value: "down-2oct", label: "Down (2 Octaves)" },
+  { value: "up&down-2oct", label: "Up & Down (2 Octaves)" },
+  { value: "random-2oct", label: "Random (2 Octaves)" },
+];
+
+const arpeggiatorRateOptions = [
+  { value: "quarter", label: "Quarter Note" },
+  { value: "eighth", label: "Eighth Note" },
+  { value: "sixteenth", label: "Sixteenth Note" },
+  { value: "thirty-second", label: "Thirty-Second Note" },
+  { value: "quarter-triplet", label: "Quarter Note Triplet" },
+  { value: "eighth-triplet", label: "Eighth Note Triplet" },
+  { value: "sixteenth-triplet", label: "Sixteenth Note Triplet" },
+  { value: "thirty-second-triplet", label: "Thirty-Second Note Triplet" },
 ];
 
 const xOptions = computed(() =>
@@ -1210,6 +1269,11 @@ function onPreviewPressStart(event) {
     event,
     notes: previewNotesPlayable.value,
     velocities: stateVelocities.value.slice(),
+    arpeggiator: {
+      enabled: Boolean(stateArpeggiator.enabled),
+      pattern: String(stateArpeggiator.pattern),
+      rate: String(stateArpeggiator.rate),
+    },
   });
 }
 
@@ -1503,6 +1567,11 @@ function buildPadSnapshot() {
       y: stateSettings.y,
     },
     velocities: stateVelocities.value.slice(),
+    arpeggiator: {
+      enabled: Boolean(stateArpeggiator.enabled),
+      pattern: String(stateArpeggiator.pattern),
+      rate: String(stateArpeggiator.rate),
+    },
   };
 }
 
@@ -1569,6 +1638,17 @@ function applyPadState(s) {
     stateVelocities.value = [];
   }
 
+  // Load arpeggiator settings (backward compatible)
+  if (s.arpeggiator && typeof s.arpeggiator === "object") {
+    stateArpeggiator.enabled = Boolean(s.arpeggiator.enabled);
+    stateArpeggiator.pattern = s.arpeggiator.pattern || "up";
+    stateArpeggiator.rate = s.arpeggiator.rate || "eighth";
+  } else {
+    stateArpeggiator.enabled = false;
+    stateArpeggiator.pattern = "up";
+    stateArpeggiator.rate = "eighth";
+  }
+
   previousScaleExtension.value = stateScale.extension;
   previousFreeExtension.value = stateFree.extension;
 
@@ -1609,6 +1689,11 @@ const isDirty = computed(() => {
       y: stateSettings.y,
     },
     velocities: stateVelocities.value.slice(),
+    arpeggiator: {
+      enabled: Boolean(stateArpeggiator.enabled),
+      pattern: String(stateArpeggiator.pattern),
+      rate: String(stateArpeggiator.rate),
+    },
   };
   const base = {
     mode: s.mode ?? "scale",
@@ -1632,6 +1717,11 @@ const isDirty = computed(() => {
       y: s?.settings?.y ?? "none",
     },
     velocities: Array.isArray(s?.velocities) ? s.velocities.slice() : [],
+    arpeggiator: {
+      enabled: Boolean(s?.arpeggiator?.enabled ?? false),
+      pattern: s?.arpeggiator?.pattern ?? "up",
+      rate: s?.arpeggiator?.rate ?? "eighth",
+    },
   };
   try {
     return JSON.stringify(current) !== JSON.stringify(base);
@@ -1722,5 +1812,48 @@ const isDirty = computed(() => {
   font-family: monospace;
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.arpeggiator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.arpeggiator-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.arpeggiator-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.arpeggiator-enable {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.arpeggiator-enable input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.arpeggiator-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.arpeggiator-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 </style>
