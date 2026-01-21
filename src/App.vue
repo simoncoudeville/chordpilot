@@ -268,11 +268,11 @@ const globalScaleType = ref("major");
 const globalScaleEnabled = ref(true);
 
 const preferredGlobalScaleRoot = computed(() =>
-  preferredScaleRoot(globalScale.value, globalScaleType.value)
+  preferredScaleRoot(globalScale.value, globalScaleType.value),
 );
 
 const globalScaleDisplayName = computed(() =>
-  formatScaleName(globalScale.value, globalScaleType.value)
+  formatScaleName(globalScale.value, globalScaleType.value),
 );
 
 const globalScaleNotes = computed(() => {
@@ -312,7 +312,7 @@ function saveGlobalScaleSettings() {
         scale: globalScale.value,
         type: globalScaleType.value,
         enabled: globalScaleEnabled.value,
-      })
+      }),
     );
   } catch {}
 }
@@ -429,10 +429,10 @@ function saveGlobalKey({ scale, type, enabled }) {
           q === "m"
             ? "minor"
             : q === "dim"
-            ? "diminished"
-            : q === "aug"
-            ? "augmented"
-            : "major";
+              ? "diminished"
+              : q === "aug"
+                ? "augmented"
+                : "major";
 
         // Return new pad object in free mode
         return {
@@ -455,11 +455,11 @@ function saveGlobalKey({ scale, type, enabled }) {
   } else if (enabled && changed) {
     // Reset affected pads silently; warning is shown inline in dialog
     const hasAffected = (pads.value || []).some(
-      (p) => p && p.mode === "scale" && p.assigned !== false
+      (p) => p && p.mode === "scale" && p.assigned !== false,
     );
     if (hasAffected) {
       pads.value = pads.value.map((p) =>
-        p && p.mode === "scale" && p.assigned !== false ? defaultPad() : p
+        p && p.mode === "scale" && p.assigned !== false ? defaultPad() : p,
       );
       savePads();
     }
@@ -505,7 +505,7 @@ watch(
     if (Number(midiModelOutCh.value) !== chValid)
       midiModelOutCh.value = chValid;
   },
-  { deep: false }
+  { deep: false },
 );
 
 async function handleRequestPermission() {
@@ -569,7 +569,7 @@ function loadPads() {
     if (Array.isArray(parsed)) {
       // 1. Load what fits normally
       const nextPads = pads.value.map((p, i) =>
-        parsed[i] ? { ...defaultPad(), ...parsed[i] } : p
+        parsed[i] ? { ...defaultPad(), ...parsed[i] } : p,
       );
 
       // 2. Identify overflow pads that are assigned
@@ -605,8 +605,8 @@ function savePads() {
 onMounted(() => {
   midiSupported.value = Boolean(
     (WebMidi && "supported" in WebMidi ? WebMidi.supported : undefined) ??
-      (typeof navigator !== "undefined" &&
-        typeof navigator.requestMIDIAccess === "function")
+    (typeof navigator !== "undefined" &&
+      typeof navigator.requestMIDIAccess === "function"),
   );
   updatePermissionStatus();
   loadGlobalScaleSettings();
@@ -631,7 +631,7 @@ const statusDisplay = computed(() => {
 });
 
 const hasMidiOutputs = computed(
-  () => Array.isArray(outputs.value) && outputs.value.length > 0
+  () => Array.isArray(outputs.value) && outputs.value.length > 0,
 );
 
 const showMidiWarningButton = computed(() => {
@@ -652,8 +652,8 @@ const midiWarningLabel = computed(() => {
 const scaleModePadCount = computed(() =>
   (pads.value || []).reduce(
     (acc, p) => acc + (p && p.mode === "scale" && p.assigned !== false ? 1 : 0),
-    0
-  )
+    0,
+  ),
 );
 
 watch(
@@ -669,7 +669,7 @@ watch(
       } catch {}
     }
   },
-  { immediate: false }
+  { immediate: false },
 );
 
 watch(
@@ -681,7 +681,7 @@ watch(
       disconnectMidi();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 function saveEdit(snapshot) {
@@ -864,10 +864,10 @@ function padChordSymbol(pad) {
       q === "m"
         ? "minor"
         : q === "dim"
-        ? "diminished"
-        : q === "aug"
-        ? "augmented"
-        : "major";
+          ? "diminished"
+          : q === "aug"
+            ? "augmented"
+            : "major";
     const ext = normalizeExtension(pad?.scale?.extension);
     return buildChordSymbol(rootPc, type, ext);
   } else if (pad.mode === "free") {
@@ -881,8 +881,14 @@ function padChordSymbol(pad) {
 
 function padBaseOctave(pad) {
   if (!pad) return 4;
-  if (pad.mode === "scale") return Number(pad?.scale?.octave) || 4;
-  if (pad.mode === "free") return Number(pad?.free?.octave) || 4;
+  if (pad.mode === "scale") {
+    const val = Number(pad?.scale?.octave);
+    return Number.isFinite(val) ? val : 4;
+  }
+  if (pad.mode === "free") {
+    const val = Number(pad?.free?.octave);
+    return Number.isFinite(val) ? val : 4;
+  }
   return 4;
 }
 
@@ -900,7 +906,7 @@ function padNotes(pad) {
   const definition = buildChordDefinition(
     chordRootForPad(pad),
     type,
-    extension
+    extension,
   );
   const pcs = definition.notes;
   const oct = padBaseOctave(pad);
@@ -924,7 +930,7 @@ function padButtonLabelHtml(pad) {
   return formatChordSymbol(
     s,
     preferredGlobalScaleRoot.value,
-    globalScaleType.value
+    globalScaleType.value,
   );
 }
 
@@ -1189,7 +1195,7 @@ function onPreviewStop() {
 // When no pads are active, show the last played chord.
 const activeNoteNames = computed(() => {
   const fromPads = Object.values(activePadNotes).flatMap((arr) =>
-    Array.isArray(arr) ? arr : []
+    Array.isArray(arr) ? arr : [],
   );
   // If no pads are currently playing, show the last played chord
   if (fromPads.length === 0 && lastPlayedNotes.value.length > 0) {
@@ -1217,7 +1223,7 @@ const nowPlayingHtml = computed(() => {
   notes.sort((a, b) => (Note.midi(a) ?? 0) - (Note.midi(b) ?? 0));
   // Format each note with enharmonic preference based on global key
   const formatted = notes.map((n) =>
-    formatNoteName(n, preferredGlobalScaleRoot.value, globalScaleType.value)
+    formatNoteName(n, preferredGlobalScaleRoot.value, globalScaleType.value),
   );
   return formatted.join(" ");
 });
