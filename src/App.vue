@@ -37,6 +37,19 @@
       <button
         class="icon-button"
         type="button"
+        @click="openPresetDialog"
+        aria-label="Save and load presets"
+      >
+        <Save
+          aria-hidden="true"
+          :stroke-width="1.5"
+          :size="20"
+          :absoluteStrokeWidth="true"
+        />
+      </button>
+      <button
+        class="icon-button"
+        type="button"
         @click="openInfoDialog"
         aria-label="App information"
       >
@@ -95,6 +108,7 @@
     :permission-prompt="permissionPrompt"
     v-model:midi-model-output-id="midiModelOutputId"
     v-model:midi-model-out-ch="midiModelOutCh"
+    v-model:single-chord-mode="singleChordMode"
     :status-display="statusDisplay"
     :is-midi-dirty="isMidiDirty"
     @save="saveMidiDialog"
@@ -109,6 +123,9 @@
     :model-scale="globalScale"
     :model-type="globalScaleType"
     :model-enabled="globalScaleEnabled"
+    :model-tempo="tempo"
+    :model-tempo-midi-sync="tempoMidiSync"
+    :midi-enabled="midiEnabled"
     :scale-pad-count="scaleModePadCount"
     @close="onCloseGlobalKey"
     @save="saveGlobalKey"
@@ -129,12 +146,22 @@
     @cancel="cancelDeletePad"
     @close="onClosePadDeleteDialog"
   />
+  <PresetDialog
+    ref="presetDialogRef"
+    :presets="presets"
+    @save-preset="savePreset"
+    @load-preset="loadPreset"
+    @delete-preset="deletePreset"
+    @export-presets="exportPresets"
+    @import-presets="importPresets"
+    @close="onClosePresetDialog"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import { Music2, BadgeInfo, OctagonAlert } from "lucide-vue-next";
+import { Music2, BadgeInfo, OctagonAlert, Save } from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
 
 // Icon data for custom Midi icon
@@ -193,6 +220,7 @@ import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
 import PadDeleteDialog from "./components/PadDeleteDialog.vue";
+import PresetDialog from "./components/PresetDialog.vue";
 import { useMidi } from "./composables/useMidi";
 import { Scale, Note } from "@tonaljs/tonal";
 import {
@@ -218,6 +246,7 @@ const {
   outputs,
   selectedOutputId,
   selectedOutCh,
+  singleChordMode,
   permissionAllowed: permissionAllowedMidi,
   permissionPrompt: permissionPromptMidi,
   midiWasConnected,
@@ -241,6 +270,7 @@ const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
 const padDeleteDialogRef = ref(null);
+const presetDialogRef = ref(null);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
@@ -266,6 +296,10 @@ const isMidiDirty = computed(() => {
 const globalScale = ref("C");
 const globalScaleType = ref("major");
 const globalScaleEnabled = ref(true);
+
+// Tempo state
+const tempo = ref(120); // BPM
+const tempoMidiSync = ref(false); // Enable MIDI tempo sync
 
 const preferredGlobalScaleRoot = computed(() =>
   preferredScaleRoot(globalScale.value, globalScaleType.value)
@@ -299,6 +333,10 @@ function loadGlobalScaleSettings() {
       if (obj.type) globalScaleType.value = obj.type;
       if (typeof obj.enabled === "boolean")
         globalScaleEnabled.value = obj.enabled;
+      if (typeof obj.tempo === "number" && obj.tempo >= 20 && obj.tempo <= 300)
+        tempo.value = obj.tempo;
+      if (typeof obj.tempoMidiSync === "boolean")
+        tempoMidiSync.value = obj.tempoMidiSync;
     }
   } catch {}
 }
@@ -312,9 +350,124 @@ function saveGlobalScaleSettings() {
         scale: globalScale.value,
         type: globalScaleType.value,
         enabled: globalScaleEnabled.value,
+        tempo: tempo.value,
+        tempoMidiSync: tempoMidiSync.value,
       })
     );
   } catch {}
+}
+
+// Preset management
+const PRESETS_KEY = "chordboard:presets";
+const presets = ref([]);
+
+function loadPresets() {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      presets.value = parsed;
+    }
+  } catch {}
+}
+
+function savePresetsToStorage() {
+  try {
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets.value));
+  } catch {}
+}
+
+function savePreset(name) {
+  const preset = {
+    id: Date.now().toString(),
+    name,
+    timestamp: new Date().toISOString(),
+    pads: JSON.parse(JSON.stringify(pads.value)),
+    globalScale: {
+      scale: globalScale.value,
+      type: globalScaleType.value,
+      enabled: globalScaleEnabled.value,
+    },
+  };
+  presets.value.push(preset);
+  savePresetsToStorage();
+}
+
+function loadPreset(preset) {
+  if (!preset) return;
+
+  // Load pads configuration
+  if (preset.pads && Array.isArray(preset.pads)) {
+    pads.value = preset.pads.map((p, i) =>
+      p ? { ...defaultPad(), ...p } : defaultPad()
+    );
+    savePads();
+  }
+
+  // Load global scale settings
+  if (preset.globalScale) {
+    if (preset.globalScale.scale) globalScale.value = preset.globalScale.scale;
+    if (preset.globalScale.type) globalScaleType.value = preset.globalScale.type;
+    if (typeof preset.globalScale.enabled === "boolean") {
+      globalScaleEnabled.value = preset.globalScale.enabled;
+    }
+    saveGlobalScaleSettings();
+  }
+
+  // Clear visual display
+  clearVisualDisplay();
+}
+
+function deletePreset(id) {
+  presets.value = presets.value.filter((p) => p.id !== id);
+  savePresetsToStorage();
+}
+
+function exportPresets() {
+  if (presets.value.length === 0) return;
+
+  const dataStr = JSON.stringify(presets.value, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `chordboard-presets-${new Date().toISOString().split("T")[0]}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function importPresets(data) {
+  try {
+    if (!Array.isArray(data)) {
+      alert("Invalid preset file format.");
+      return;
+    }
+
+    // Validate and merge imported presets
+    const validPresets = data.filter(
+      (p) => p && p.id && p.name && p.pads && Array.isArray(p.pads)
+    );
+
+    if (validPresets.length === 0) {
+      alert("No valid presets found in the file.");
+      return;
+    }
+
+    // Merge with existing presets (avoid duplicates by ID)
+    const existingIds = new Set(presets.value.map((p) => p.id));
+    const newPresets = validPresets.filter((p) => !existingIds.has(p.id));
+
+    presets.value.push(...newPresets);
+    savePresetsToStorage();
+
+    alert(`Successfully imported ${newPresets.length} preset(s).`);
+  } catch (error) {
+    alert("Failed to import presets.");
+    console.error("Import error:", error);
+  }
 }
 
 function openEditDialog(idx) {
@@ -345,6 +498,15 @@ function onCloseGlobalKey() {}
 function openInfoDialog() {
   clearVisualDisplay();
   infoDialogRef.value?.open?.();
+}
+
+function openPresetDialog() {
+  clearVisualDisplay();
+  presetDialogRef.value?.open?.();
+}
+
+function onClosePresetDialog() {
+  presetDialogRef.value?.close?.();
 }
 
 function onCloseInfo() {}
@@ -412,7 +574,7 @@ function confirmDeletePad() {
   resetDeleteDialogState();
 }
 
-function saveGlobalKey({ scale, type, enabled }) {
+function saveGlobalKey({ scale, type, enabled, tempo: newTempo, tempoMidiSync: newTempoMidiSync }) {
   const wasEnabled = globalScaleEnabled.value;
   const changed =
     String(scale) !== String(globalScale.value) ||
@@ -467,6 +629,12 @@ function saveGlobalKey({ scale, type, enabled }) {
   globalScale.value = scale;
   globalScaleType.value = type;
   globalScaleEnabled.value = enabled;
+  if (typeof newTempo === "number" && newTempo >= 20 && newTempo <= 300) {
+    tempo.value = newTempo;
+  }
+  if (typeof newTempoMidiSync === "boolean") {
+    tempoMidiSync.value = newTempoMidiSync;
+  }
   saveGlobalScaleSettings();
 }
 
@@ -557,6 +725,12 @@ function defaultPad() {
       x: "none",
       y: "none",
     },
+    velocities: [], // Individual note velocities (0-127), defaults to 127 if empty
+    arpeggiator: {
+      enabled: false,
+      pattern: "up", // up, down, up&down, random, up-2oct, down-2oct, up&down-2oct, random-2oct
+      rate: "eighth", // quarter, eighth, sixteenth, thirty-second, quarter-triplet, eighth-triplet, sixteenth-triplet, thirty-second-triplet
+    },
   };
 }
 
@@ -611,6 +785,7 @@ onMounted(() => {
   updatePermissionStatus();
   loadGlobalScaleSettings();
   loadPads();
+  loadPresets();
   checkChangelog();
 });
 
@@ -933,9 +1108,290 @@ const activePadNotes = reactive({});
 
 const padTimers = reactive({});
 const padSchedules = reactive({});
+const activeArpeggiators = reactive({}); // { padIdx: { interval, currentIndex, notes, velocities } }
+
+// Calculate interval in milliseconds based on BPM and rate
+function getArpeggiatorInterval(rate) {
+  const bpm = tempo.value;
+  const msPerBeat = 60000 / bpm;
+
+  // Rate multipliers relative to quarter note (halved for correct timing)
+  const rateMultipliers = {
+    "quarter": 0.5,
+    "eighth": 0.25,
+    "sixteenth": 0.125,
+    "thirty-second": 0.0625,
+    "quarter-triplet": 0.5 / 1.5,
+    "eighth-triplet": 0.25 / 1.5,
+    "sixteenth-triplet": 0.125 / 1.5,
+    "thirty-second-triplet": 0.0625 / 1.5,
+  };
+
+  const multiplier = rateMultipliers[rate] || 0.25; // Default to eighth
+  return msPerBeat * multiplier;
+}
+
+// Generate arpeggio note sequence based on pattern
+function generateArpeggioSequence(notes, pattern) {
+  if (!notes || notes.length === 0) return [];
+
+  // Convert note names to MIDI numbers for arithmetic
+  const midiNotes = notes.map(n => {
+    const midi = Note.midi(n);
+    return midi !== null && midi !== undefined ? midi : n;
+  });
+
+  const sortedNotes = [...midiNotes].sort((a, b) => a - b);
+
+  // Check for 2-octave patterns
+  const is2Oct = pattern && pattern.includes("-2oct");
+
+  if (is2Oct) {
+    // Add second octave (works on MIDI numbers now)
+    const secondOctave = sortedNotes.map(n => n + 12);
+    const allNotes = [...sortedNotes, ...secondOctave].sort((a, b) => a - b);
+
+    if (pattern === "up-2oct") {
+      return allNotes;
+    } else if (pattern === "down-2oct") {
+      return [...allNotes].reverse();
+    } else if (pattern === "up&down-2oct") {
+      // Don't double top and bottom
+      return [...allNotes, ...allNotes.slice(1, -1).reverse()];
+    } else if (pattern === "random-2oct") {
+      return allNotes; // Will be randomized during playback
+    }
+    // Fallback for any 2-oct pattern
+    return allNotes;
+  }
+
+  // Single octave patterns
+  if (pattern === "up") {
+    return sortedNotes;
+  } else if (pattern === "down") {
+    return [...sortedNotes].reverse();
+  } else if (pattern === "up&down") {
+    // Don't double top and bottom
+    return [...sortedNotes, ...sortedNotes.slice(1, -1).reverse()];
+  } else if (pattern === "random") {
+    return sortedNotes; // Will be randomized during playback
+  }
+
+  // Default fallback
+  return sortedNotes;
+}
+
+// Start arpeggiator for a pad
+function startArpeggiator(idx, notes, pad, baseVelocity, ch) {
+  // Stop any existing arpeggiator for this pad
+  stopArpeggiator(idx);
+
+  const arpConfig = pad.arpeggiator || {};
+  const pattern = arpConfig.pattern || "up";
+  const rate = arpConfig.rate || "eighth";
+
+  // Convert notes to MIDI numbers for consistent handling
+  const midiNotes = notes.map(n => {
+    const midi = Note.midi(n);
+    return midi !== null && midi !== undefined ? midi : n;
+  });
+
+  // Generate the note sequence (now working with MIDI numbers)
+  const sequence = generateArpeggioSequence(notes, pattern);
+  if (sequence.length === 0) return;
+
+  // Get velocities for the notes
+  const velocities = pad.velocities || [];
+
+  let currentIndex = 0;
+  let lastNoteOff = null; // Track last note to turn off
+
+  // Function to play the next note in the arpeggio
+  const playNextNote = () => {
+    try {
+      // Stop previous note if it's still playing
+      if (lastNoteOff !== null) {
+        ch.stopNote(lastNoteOff);
+      }
+
+      // Determine which note to play
+      let noteToPlay;
+      if (pattern.includes("random")) {
+        // Random: pick a random note from the sequence
+        noteToPlay = sequence[Math.floor(Math.random() * sequence.length)];
+      } else {
+        // Sequential: use current index
+        noteToPlay = sequence[currentIndex];
+        currentIndex = (currentIndex + 1) % sequence.length;
+      }
+
+      // Find the original note index for velocity
+      // Map the arpeggiated note back to the original chord notes
+      let originalNoteIndex = midiNotes.findIndex(n => n === noteToPlay);
+      if (originalNoteIndex === -1) {
+        // If not found (e.g., 2-octave pattern), find same pitch class
+        const pitchClass = noteToPlay % 12;
+        originalNoteIndex = midiNotes.findIndex(n => n % 12 === pitchClass);
+      }
+      const noteVelocity = velocities[originalNoteIndex >= 0 ? originalNoteIndex : 0] ?? 127;
+
+      // Calculate final velocity
+      let vel = baseVelocity * (noteVelocity / 127);
+      vel = Math.max(0.01, Math.min(1, vel));
+
+      // Play the note
+      ch.playNote(noteToPlay, { attack: vel });
+      lastNoteOff = noteToPlay;
+
+    } catch (err) {
+      console.error("Arpeggiator playback error:", err);
+    }
+  };
+
+  // Check if we should use MIDI clock sync
+  if (tempoMidiSync.value && midiEnabled.value) {
+    // Use MIDI clock to drive the arpeggiator
+    // Find a MIDI input device
+    let input = WebMidi.inputs.find((i) => i.id === selectedOutputId.value);
+    if (!input) {
+      const output = WebMidi.outputs.find((o) => o.id === selectedOutputId.value);
+      if (output) {
+        input = WebMidi.inputs.find(
+          (i) => i.name === output.name && i.manufacturer === output.manufacturer
+        );
+      }
+    }
+    if (!input && WebMidi.inputs.length > 0) {
+      input = WebMidi.inputs[0];
+    }
+
+    if (input) {
+      // Calculate pulses per note based on rate
+      // MIDI clock sends 24 pulses per quarter note (PPQN)
+      const pulsesPerNote = {
+        "quarter": 24, // Quarter note = 24 pulses
+        "eighth": 12,   // Eighth note = 12 pulses
+        "sixteenth": 6, // Sixteenth note = 6 pulses
+        "thirty-second": 3, // Thirty-second note = 3 pulses
+        "quarter-triplet": 16, // Quarter triplet = 24 / 1.5 = 16 pulses
+        "eighth-triplet": 8,   // Eighth triplet = 12 / 1.5 = 8 pulses
+        "sixteenth-triplet": 4, // Sixteenth triplet = 6 / 1.5 = 4 pulses
+        "thirty-second-triplet": 2, // Thirty-second triplet = 3 / 1.5 = 2 pulses
+      };
+
+      const pulsesNeeded = pulsesPerNote[rate] || 12; // Default to eighth
+      let pulseCount = 0;
+
+      // Play the first note immediately
+      playNextNote();
+
+      // MIDI clock listener
+      const clockListener = () => {
+        pulseCount++;
+        if (pulseCount >= pulsesNeeded) {
+          pulseCount = 0;
+          playNextNote();
+        }
+      };
+
+      try {
+        input.addListener("clock", clockListener);
+
+        // Store arpeggiator state with MIDI clock listener
+        activeArpeggiators[idx] = {
+          interval: null,
+          clockListener,
+          midiInput: input,
+          currentIndex,
+          notes: sequence,
+          velocities,
+          lastNoteOff: () => lastNoteOff,
+        };
+      } catch (err) {
+        console.error("Failed to add MIDI clock listener for arpeggiator:", err);
+        // Fall back to interval-based timing
+        startArpeggiatorWithInterval();
+      }
+    } else {
+      // No MIDI input available, fall back to interval
+      startArpeggiatorWithInterval();
+    }
+  } else {
+    // Use interval-based timing
+    startArpeggiatorWithInterval();
+  }
+
+  function startArpeggiatorWithInterval() {
+    // Calculate interval
+    const interval = getArpeggiatorInterval(rate);
+
+    // Play the first note immediately
+    playNextNote();
+
+    // Set up interval for subsequent notes
+    const intervalId = setInterval(playNextNote, interval);
+
+    // Store arpeggiator state
+    activeArpeggiators[idx] = {
+      interval: intervalId,
+      clockListener: null,
+      midiInput: null,
+      currentIndex,
+      notes: sequence,
+      velocities,
+      lastNoteOff: () => lastNoteOff,
+    };
+  }
+}
+
+// Stop arpeggiator for a pad
+function stopArpeggiator(idx) {
+  const arp = activeArpeggiators[idx];
+  if (!arp) return;
+
+  // Clear the interval if using interval-based timing
+  if (arp.interval) {
+    clearInterval(arp.interval);
+  }
+
+  // Remove MIDI clock listener if using MIDI clock timing
+  if (arp.clockListener && arp.midiInput) {
+    try {
+      arp.midiInput.removeListener("clock", arp.clockListener);
+    } catch (err) {
+      console.error("Failed to remove MIDI clock listener:", err);
+    }
+  }
+
+  // Stop the last playing note
+  try {
+    const sel = getSelectedChannel();
+    const ch = sel?.ch;
+    if (ch) {
+      const lastNote = arp.lastNoteOff?.();
+      if (lastNote !== null && lastNote !== undefined) {
+        ch.stopNote(lastNote);
+      }
+    }
+  } catch {}
+
+  // Remove from active arpeggiators
+  delete activeArpeggiators[idx];
+}
 
 function onStartPad(idx, e, coords) {
   try {
+    // If single-chord mode is enabled, stop all other playing pads
+    if (singleChordMode.value) {
+      Object.keys(activePadNotes).forEach((padIdx) => {
+        const padIdxNum = Number(padIdx);
+        // Only stop other pads, not the current one
+        if (padIdxNum !== idx && activePadNotes[padIdx]?.length > 0) {
+          onStopPad(padIdxNum);
+        }
+      });
+    }
+
     // Clear any existing state for this pad
     if (padTimers[idx]) {
       padTimers[idx].forEach((id) => clearTimeout(id));
@@ -984,6 +1440,14 @@ function onStartPad(idx, e, coords) {
     activePadNotes[idx] = notes.slice();
     lastPlayedNotes.value = notes.slice(); // Remember last played chord
 
+    // Check if arpeggiator is enabled for this pad
+    const arpConfig = pad.arpeggiator || { enabled: false };
+    if (arpConfig.enabled) {
+      // Start arpeggiator instead of playing all notes
+      startArpeggiator(idx, notes, pad, baseVelocity, ch);
+      return;
+    }
+
     const now = WebMidi.time;
     const strumStep =
       strumDuration > 0 && notes.length > 1 ? strumDuration / notes.length : 0;
@@ -1018,6 +1482,10 @@ function onStartPad(idx, e, coords) {
 
       // Clamp velocity
       vel = Math.max(0.01, Math.min(1, vel));
+
+      // Apply individual note velocity (0-127, default 127)
+      const noteVelocity = pad.velocities?.[i] ?? 127;
+      vel = vel * (noteVelocity / 127);
 
       // Calculate exact MIDI timestamp for this note
       let noteTime = now + i * strumStep;
@@ -1088,6 +1556,9 @@ function sendContinuousExpression(ch, func, value) {
 
 function onStopPad(idx) {
   try {
+    // Stop arpeggiator if running
+    stopArpeggiator(idx);
+
     // 1. Cancel any future notes that haven't been sent to MIDI driver yet
     if (padTimers[idx]) {
       padTimers[idx].forEach((id) => clearTimeout(id));
@@ -1150,20 +1621,37 @@ function onPreviewStart(payload) {
     const ch = sel?.ch;
     if (!ch) return;
     activePreviewNotes.value = notes.slice();
-    try {
-      ch.playNote(notes);
-    } catch {
-      for (const n of notes) {
-        try {
-          ch.playNote(n);
-        } catch {}
-      }
+
+    const velocities = Array.isArray(payload?.velocities) ? payload.velocities : [];
+    const arpConfig = payload?.arpeggiator || { enabled: false };
+
+    // Check if arpeggiator is enabled for preview
+    if (arpConfig.enabled) {
+      // Create a temporary pad object for the arpeggiator
+      const tempPad = {
+        velocities,
+        arpeggiator: arpConfig,
+      };
+      startArpeggiator("preview", notes, tempPad, 0.75, ch);
+      return;
+    }
+
+    // Play notes with individual velocities (non-arpeggiated)
+    for (let i = 0; i < notes.length; i++) {
+      try {
+        const velocity = velocities[i] ?? 127;
+        const vel = velocity / 127; // Convert 0-127 to 0-1
+        ch.playNote(notes[i], { attack: vel });
+      } catch {}
     }
   } catch {}
 }
 
 function onPreviewStop() {
   try {
+    // Stop arpeggiator if running
+    stopArpeggiator("preview");
+
     if (!activePreviewNotes.value.length) return;
     const sel = getSelectedChannel();
     const ch = sel?.ch;

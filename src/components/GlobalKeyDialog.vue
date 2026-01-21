@@ -7,7 +7,7 @@
   >
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
-        <h2 class="dialog-title">Global Scale</h2>
+        <h2 class="dialog-title">Music Settings</h2>
         <button
           type="button"
           class="dialog-close"
@@ -24,12 +24,9 @@
           <span class="sr-only">Close</span>
         </button>
       </div>
-      <!-- <div class="dialog-content">
-        <p class="color-meta">
-          With global scale enabled all pads get the option to choose only
-          chords within that scale.
-        </p>
-      </div> -->
+      <div class="dialog-content">
+        <h3 class="section-title">Global Scale</h3>
+      </div>
       <div class="dialog-content">
         <label class="toggle-label">
           <span class="label-text">Enable Global Scale</span>
@@ -76,8 +73,42 @@
           />
         </label>
       </div>
+      <div class="dialog-content">
+        <hr />
+      </div>
+      <div class="dialog-content">
+        <h3 class="section-title">Tempo</h3>
+        <div class="tempo-controls">
+          <div class="tempo-slider-group">
+            <label class="label-text">BPM</label>
+            <input
+              type="range"
+              min="20"
+              max="300"
+              v-model.number="tempoLocal"
+              :disabled="tempoMidiSyncLocal"
+              class="tempo-slider"
+            />
+            <div class="tempo-display">
+              {{ tempoLocal }}
+            </div>
+          </div>
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempoMidiSyncLocal"
+              :disabled="!midiEnabled"
+              class="checkbox-input"
+            />
+            <span>Sync from MIDI clock</span>
+          </label>
+          <p v-if="!midiEnabled" class="color-meta tempo-hint">
+            Enable MIDI to sync tempo from MIDI clock
+          </p>
+        </div>
+      </div>
       <div
-        v-if="isDirty && scalePadCount > 0 && enabledLocal"
+        v-if="isScaleDirty && scalePadCount > 0 && enabledLocal"
         class="dialog-content color-warning"
       >
         Changing the global scale will reset
@@ -85,7 +116,7 @@
         currently in Scale mode.
       </div>
       <div
-        v-if="isDirty && scalePadCount > 0 && !enabledLocal && modelEnabled"
+        v-if="isScaleDirty && scalePadCount > 0 && !enabledLocal && modelEnabled"
         class="dialog-content color-warning"
       >
         Disabling global scale will convert
@@ -116,6 +147,9 @@ const props = defineProps({
   modelScale: { type: String, default: "" },
   modelType: { type: String, default: "" },
   modelEnabled: { type: Boolean, default: true },
+  modelTempo: { type: Number, default: 120 },
+  modelTempoMidiSync: { type: Boolean, default: false },
+  midiEnabled: { type: Boolean, default: false },
   scalePadCount: { type: Number, default: 0 },
 });
 const emit = defineEmits(["save", "close"]);
@@ -125,6 +159,8 @@ const dlg = ref(null);
 const scaleLocal = ref(props.modelScale);
 const typeLocal = ref(props.modelType);
 const enabledLocal = ref(props.modelEnabled);
+const tempoLocal = ref(props.modelTempo);
+const tempoMidiSyncLocal = ref(props.modelTempoMidiSync);
 
 // Scale options: display both sharp and flat names for black keys
 const scaleRoots = computed(() => [
@@ -163,6 +199,15 @@ const isDirty = computed(
   () =>
     scaleLocal.value !== props.modelScale ||
     typeLocal.value !== props.modelType ||
+    enabledLocal.value !== props.modelEnabled ||
+    tempoLocal.value !== props.modelTempo ||
+    tempoMidiSyncLocal.value !== props.modelTempoMidiSync
+);
+
+const isScaleDirty = computed(
+  () =>
+    scaleLocal.value !== props.modelScale ||
+    typeLocal.value !== props.modelType ||
     enabledLocal.value !== props.modelEnabled
 );
 
@@ -171,6 +216,8 @@ function open() {
   scaleLocal.value = props.modelScale;
   typeLocal.value = props.modelType;
   enabledLocal.value = props.modelEnabled;
+  tempoLocal.value = props.modelTempo;
+  tempoMidiSyncLocal.value = props.modelTempoMidiSync;
   dlg.value?.showModal();
 }
 function close() {
@@ -186,9 +233,115 @@ function onSave() {
     scale: scaleLocal.value,
     type: typeLocal.value,
     enabled: enabledLocal.value,
+    tempo: tempoLocal.value,
+    tempoMidiSync: tempoMidiSyncLocal.value,
   });
   close();
 }
 
 defineExpose({ open });
 </script>
+
+<style scoped>
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tempo-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tempo-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tempo-slider {
+  width: 100%;
+  height: 0.5rem;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.tempo-slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tempo-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.tempo-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.tempo-slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+.tempo-slider:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
+.tempo-slider:not(:disabled):hover::-webkit-slider-thumb {
+  background: rgba(255, 255, 255, 1);
+}
+
+.tempo-slider:not(:disabled):hover::-moz-range-thumb {
+  background: rgba(255, 255, 255, 1);
+}
+
+.tempo-display {
+  text-align: center;
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-input {
+  cursor: pointer;
+  width: 1rem;
+  height: 1rem;
+}
+
+.checkbox-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tempo-hint {
+  font-size: 0.875rem;
+  margin: 0;
+}
+</style>

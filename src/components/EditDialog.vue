@@ -208,6 +208,64 @@
           </button>
         </div>
       </div>
+      <div v-if="hasChordForPreview" class="dialog-content">
+        <div class="velocity-section">
+          <h3 class="velocity-title">Note Velocities</h3>
+          <div class="velocity-sliders">
+            <div
+              v-for="(note, i) in previewNotesPlayable"
+              :key="i"
+              class="velocity-slider-wrapper"
+            >
+              <label class="velocity-slider-label">
+                <span class="velocity-note-name">{{
+                  formatNoteName(note, globalScaleRoot, globalScaleType)
+                }}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="127"
+                  :value="getVelocity(i)"
+                  @input="setVelocity(i, $event.target.value)"
+                  class="velocity-slider"
+                />
+                <span class="velocity-value">{{ getVelocity(i) }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="hasChordForPreview" class="dialog-content">
+        <div class="arpeggiator-section">
+          <h3 class="arpeggiator-title">Arpeggiator</h3>
+          <div class="arpeggiator-controls">
+            <label class="arpeggiator-enable">
+              <input type="checkbox" v-model="stateArpeggiator.enabled" />
+              <span>Enable Arpeggiator</span>
+            </label>
+            <div v-if="stateArpeggiator.enabled" class="arpeggiator-options">
+              <label class="arpeggiator-option">
+                <span class="label-text">Pattern</span>
+                <CustomSelect
+                  v-model="stateArpeggiator.pattern"
+                  :options="arpeggiatorPatternOptions"
+                  option-value-key="value"
+                  option-label-key="label"
+                />
+              </label>
+              <label class="arpeggiator-option">
+                <span class="label-text">Rate</span>
+                <CustomSelect
+                  v-model="stateArpeggiator.rate"
+                  :options="arpeggiatorRateOptions"
+                  option-value-key="value"
+                  option-label-key="label"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="dialog-content">
         <hr />
       </div>
@@ -318,6 +376,14 @@ const stateFree = reactive({
 const stateSettings = reactive({
   x: "none",
   y: "none",
+});
+
+const stateVelocities = ref([]);
+
+const stateArpeggiator = reactive({
+  enabled: false,
+  pattern: "up",
+  rate: "eighth",
 });
 
 const previousScaleExtension = ref(DEFAULT_EXTENSION);
@@ -595,6 +661,28 @@ const EXPRESSION_OPTIONS = [
   { value: "strum", label: "Strum" },
   { value: "aftertouch", label: "Aftertouch" },
   { value: "humanization", label: "Humanization" },
+];
+
+const arpeggiatorPatternOptions = [
+  { value: "up", label: "Up" },
+  { value: "down", label: "Down" },
+  { value: "up&down", label: "Up & Down" },
+  { value: "random", label: "Random" },
+  { value: "up-2oct", label: "Up (2 Octaves)" },
+  { value: "down-2oct", label: "Down (2 Octaves)" },
+  { value: "up&down-2oct", label: "Up & Down (2 Octaves)" },
+  { value: "random-2oct", label: "Random (2 Octaves)" },
+];
+
+const arpeggiatorRateOptions = [
+  { value: "quarter", label: "Quarter Note" },
+  { value: "eighth", label: "Eighth Note" },
+  { value: "sixteenth", label: "Sixteenth Note" },
+  { value: "thirty-second", label: "Thirty-Second Note" },
+  { value: "quarter-triplet", label: "Quarter Note Triplet" },
+  { value: "eighth-triplet", label: "Eighth Note Triplet" },
+  { value: "sixteenth-triplet", label: "Sixteenth Note Triplet" },
+  { value: "thirty-second-triplet", label: "Thirty-Second Note Triplet" },
 ];
 
 const xOptions = computed(() =>
@@ -1180,6 +1268,12 @@ function onPreviewPressStart(event) {
   emit("preview-start", {
     event,
     notes: previewNotesPlayable.value,
+    velocities: stateVelocities.value.slice(),
+    arpeggiator: {
+      enabled: Boolean(stateArpeggiator.enabled),
+      pattern: String(stateArpeggiator.pattern),
+      rate: String(stateArpeggiator.rate),
+    },
   });
 }
 
@@ -1434,6 +1528,18 @@ watch(
   { immediate: true }
 );
 
+// --- Velocity support ---
+function getVelocity(index) {
+  return stateVelocities.value[index] ?? 127;
+}
+
+function setVelocity(index, value) {
+  const numValue = Number(value);
+  if (!Number.isFinite(numValue)) return;
+  const clamped = Math.max(0, Math.min(127, Math.round(numValue)));
+  stateVelocities.value[index] = clamped;
+}
+
 defineExpose({ open, close, dlg, resetToDefaults });
 
 // --- Saving support ---
@@ -1459,6 +1565,12 @@ function buildPadSnapshot() {
     settings: {
       x: stateSettings.x,
       y: stateSettings.y,
+    },
+    velocities: stateVelocities.value.slice(),
+    arpeggiator: {
+      enabled: Boolean(stateArpeggiator.enabled),
+      pattern: String(stateArpeggiator.pattern),
+      rate: String(stateArpeggiator.rate),
     },
   };
 }
@@ -1519,6 +1631,24 @@ function applyPadState(s) {
     stateSettings.y = "none";
   }
 
+  // Load velocities (backward compatible - defaults to 127 if not present)
+  if (Array.isArray(s.velocities)) {
+    stateVelocities.value = s.velocities.slice();
+  } else {
+    stateVelocities.value = [];
+  }
+
+  // Load arpeggiator settings (backward compatible)
+  if (s.arpeggiator && typeof s.arpeggiator === "object") {
+    stateArpeggiator.enabled = Boolean(s.arpeggiator.enabled);
+    stateArpeggiator.pattern = s.arpeggiator.pattern || "up";
+    stateArpeggiator.rate = s.arpeggiator.rate || "eighth";
+  } else {
+    stateArpeggiator.enabled = false;
+    stateArpeggiator.pattern = "up";
+    stateArpeggiator.rate = "eighth";
+  }
+
   previousScaleExtension.value = stateScale.extension;
   previousFreeExtension.value = stateFree.extension;
 
@@ -1558,6 +1688,12 @@ const isDirty = computed(() => {
       x: stateSettings.x,
       y: stateSettings.y,
     },
+    velocities: stateVelocities.value.slice(),
+    arpeggiator: {
+      enabled: Boolean(stateArpeggiator.enabled),
+      pattern: String(stateArpeggiator.pattern),
+      rate: String(stateArpeggiator.rate),
+    },
   };
   const base = {
     mode: s.mode ?? "scale",
@@ -1580,6 +1716,12 @@ const isDirty = computed(() => {
       x: s?.settings?.x ?? "none",
       y: s?.settings?.y ?? "none",
     },
+    velocities: Array.isArray(s?.velocities) ? s.velocities.slice() : [],
+    arpeggiator: {
+      enabled: Boolean(s?.arpeggiator?.enabled ?? false),
+      pattern: s?.arpeggiator?.pattern ?? "up",
+      rate: s?.arpeggiator?.rate ?? "eighth",
+    },
   };
   try {
     return JSON.stringify(current) !== JSON.stringify(base);
@@ -1588,3 +1730,130 @@ const isDirty = computed(() => {
   }
 });
 </script>
+
+<style scoped>
+.velocity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.velocity-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.velocity-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.velocity-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.velocity-slider-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.velocity-note-name {
+  min-width: 3rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.velocity-slider {
+  flex: 1;
+  height: 0.5rem;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.velocity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.velocity-slider::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.velocity-slider:hover::-webkit-slider-thumb {
+  background: rgba(255, 255, 255, 1);
+}
+
+.velocity-slider:hover::-moz-range-thumb {
+  background: rgba(255, 255, 255, 1);
+}
+
+.velocity-value {
+  min-width: 2.5rem;
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.arpeggiator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.arpeggiator-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.arpeggiator-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.arpeggiator-enable {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.arpeggiator-enable input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.arpeggiator-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.arpeggiator-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+</style>

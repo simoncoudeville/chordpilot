@@ -8,6 +8,7 @@ export function useMidi() {
   const outputs = ref([]);
   const selectedOutputId = ref("");
   const selectedOutCh = ref(1);
+  const singleChordMode = ref(false);
 
   const permissionAllowed = computed(() => permission.value === "granted");
   const permissionPrompt = computed(() => permission.value === "prompt");
@@ -52,6 +53,9 @@ export function useMidi() {
         if (exists) selectedOutputId.value = obj.outputId;
         selectedOutCh.value = Number(obj.channel) || 1;
         midiWasConnected.value = Boolean(obj.wasConnected);
+        if (typeof obj.singleChordMode === "boolean") {
+          singleChordMode.value = obj.singleChordMode;
+        }
       }
     } catch {}
   }
@@ -79,6 +83,7 @@ export function useMidi() {
           outputId: selectedOutputId.value,
           channel: selectedOutCh.value,
           wasConnected: midiEnabled.value,
+          singleChordMode: singleChordMode.value,
         })
       );
     } catch {}
@@ -170,6 +175,7 @@ export function useMidi() {
     outputs,
     selectedOutputId,
     selectedOutCh,
+    singleChordMode,
     permissionAllowed,
     permissionPrompt,
     midiWasConnected,
