@@ -1,5 +1,17 @@
 export const changelog = [
   {
+    version: "1.2.2",
+    date: "2026-01-26",
+    title: "Streamlined Interface",
+    description:
+      "Removed the redundant Inversion dropdown to simplify the editing interface. Inversions are still fully available through the transpose buttons.",
+    features: [
+      "Removed Inversion selector from pad editor for a cleaner interface",
+      "Transpose buttons continue to cycle through all octave and inversion combinations",
+      "All inversion functionality remains intact and accessible via transpose controls",
+    ],
+  },
+  {
     version: "1.2.1",
     date: "2025-12-26",
     title: "Smarter Transpose & Ranges",

@@ -109,14 +109,6 @@
           />
         </label>
         <label class="edit-grid-item">
-          <span class="label-text">Inversion</span>
-          <CustomSelect
-            v-model="currentInversion"
-            :options="computedInversionOptions"
-            :disabled="!currentExtension"
-          />
-        </label>
-        <label class="edit-grid-item">
           <span class="label-text">Voicing</span>
           <CustomSelect
             v-model="currentVoicing"
@@ -552,41 +544,6 @@ const currentValidInversions = computed(() =>
     ? validInversionsScale.value
     : validInversionsFree.value
 );
-
-const computedInversionOptions = computed(() => {
-  // Determine current context
-  let rootPc, chordType, ext, octave, voicing;
-
-  if (model.value.mode === "scale") {
-    rootPc = scaleChordRootPc.value;
-    chordType = scaleChordType.value;
-    ext = normalizeExtensionValue(stateScale.extension);
-    octave = stateScale.octave;
-    voicing = stateScale.voicing || "close";
-  } else {
-    rootPc = freeChordRootPc.value;
-    chordType = freeChordType.value;
-    ext = normalizeExtensionValue(stateFree.extension);
-    octave = stateFree.octave;
-    voicing = stateFree.voicing || "close";
-  }
-
-  const { pcs } = getChordPitchClasses(rootPc, chordType, ext);
-  const availableInv = currentValidInversions.value; // e.g. ["root", "1st"]
-
-  return availableInv.map((inv) => {
-    // Check if this inversion is valid for current state
-    const notes = computeMidiNotes(pcs, octave, inv, voicing);
-    const min = Math.min(...notes);
-    const max = Math.max(...notes);
-    const disabled = min < 24 || max > 107;
-    return {
-      value: inv,
-      label: inv,
-      disabled,
-    };
-  });
-});
 
 const EXPRESSION_OPTIONS = [
   { value: "none", label: "None" },
