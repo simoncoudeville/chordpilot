@@ -59,6 +59,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Prevent text selection and touch gestures on interactive elements */
+.prevent-select {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -381,7 +385,6 @@ dialog:open {
   padding: var(--space-1);
 }
 
-/* Prevent text selection and long-press selection on play buttons */
 .pad-play {
   text-box-trim: trim-both;
   border: none;
@@ -602,6 +605,10 @@ dialog:open {
   display: flex;
   align-items: center;
   margin: calc(var(--space-1) * -1);
+}
+
+.transpose-button {
+  /* Add .prevent-select class to this element in template */
 }
 
 .transpose-meta {

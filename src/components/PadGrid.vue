@@ -4,7 +4,7 @@
       <!-- Unassigned: open edit dialog on click (avoid pointerdown to prevent immediate close) -->
       <button
         v-if="pad?.mode === 'unassigned' || pad?.assigned === false"
-        class="pad-play pad-unassigned"
+        class="pad-play pad-unassigned prevent-select"
         @click.prevent.stop="onEditUnassigned(idx, $event)"
         @contextmenu.prevent
         :aria-label="`Unassigned pad ${idx + 1}, click to configure`"
@@ -15,7 +15,7 @@
       <!-- Assigned: play/stop with pointer events -->
       <button
         v-else
-        class="pad-play"
+        class="pad-play prevent-select"
         :class="{ 'is-pressed': pressedPads.has(idx) }"
         @pointerdown.prevent.stop="onPressStart(idx, pad, $event)"
         @pointermove.prevent.stop="onPointerMove(idx, pad, $event)"

@@ -127,7 +127,7 @@
           <div class="transpose-buttons">
             <button
               type="button"
-              class="icon-button transpose-button"
+              class="icon-button transpose-button prevent-select"
               :disabled="!canTransposeDown"
               @pointerdown.prevent.stop="startTransposeHold(-1, $event)"
               @pointerup="stopTransposeHold"
@@ -145,7 +145,7 @@
             </button>
             <button
               type="button"
-              class="icon-button transpose-button"
+              class="icon-button transpose-button prevent-select"
               :disabled="!canTransposeUp"
               @pointerdown.prevent.stop="startTransposeHold(1, $event)"
               @pointerup="stopTransposeHold"
