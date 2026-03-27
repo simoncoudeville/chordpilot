@@ -322,14 +322,22 @@ const globalScaleNotes = computed(() => {
   }
 });
 
-// Load global scale settings from active board
-function loadGlobalScaleSettings() {
+// Load all local state from the active board in one shot.
+// Always call this instead of loadGlobalScaleSettings/loadPads individually
+// to keep pads and scale in sync with the board.
+function loadActiveBoardState() {
   const board = activeBoard.value;
-  if (board && board.scale) {
+  if (!board) return;
+  if (board.scale) {
     if (board.scale.root) globalScale.value = board.scale.root;
     if (board.scale.type) globalScaleType.value = board.scale.type;
     if (typeof board.scale.enabled === "boolean")
       globalScaleEnabled.value = board.scale.enabled;
+  }
+  if (Array.isArray(board.pads)) {
+    pads.value = board.pads.map((p) =>
+      p ? { ...createDefaultPad(), ...p } : createDefaultPad(),
+    );
   }
 }
 
@@ -502,8 +510,7 @@ function saveGlobalKey({ scale, type, enabled }) {
 // Board management handlers
 function onSelectBoard(boardId) {
   setActiveBoard(boardId);
-  loadGlobalScaleSettings();
-  loadPads();
+  loadActiveBoardState();
   showListView.value = false;
 }
 
@@ -524,8 +531,7 @@ function onDeleteBoard(boardId) {
   deleteBoard(boardId);
   // If we deleted the active board and there are still boards left
   if (activeBoard.value) {
-    loadGlobalScaleSettings();
-    loadPads();
+    loadActiveBoardState();
   }
 }
 
@@ -596,16 +602,7 @@ function clearVisualDisplay() {
 const PAD_COUNT = 12;
 
 
-const pads = ref(Array.from({ length: PAD_COUNT }, defaultPad));
-
-function loadPads() {
-  const board = activeBoard.value;
-  if (board && Array.isArray(board.pads)) {
-    pads.value = board.pads.map((p, i) =>
-      p ? { ...createDefaultPad(), ...p } : createDefaultPad(),
-    );
-  }
-}
+const pads = ref(Array.from({ length: PAD_COUNT }, createDefaultPad));
 function savePads() {
   updateActiveBoardPads(pads.value);
 }
@@ -623,8 +620,7 @@ onMounted(() => {
 
   // If there's an active board, load it directly into detail view
   if (activeBoard.value) {
-    loadGlobalScaleSettings();
-    loadPads();
+    loadActiveBoardState();
     showListView.value = false;
   }
 
