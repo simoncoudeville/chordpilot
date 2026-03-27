@@ -72,10 +72,11 @@
 }
 
 html {
-  font-family: "Martian Mono VF", ui-monospace, Menlo, Monaco, "Cascadia Mono",
+  font-family:
+    "Martian Mono VF", ui-monospace, Menlo, Monaco, "Cascadia Mono",
     "Segoe UI Mono", "Roboto Mono", "Oxygen Mono", "Ubuntu Mono",
-    "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Consolas", "Courier New",
-    monospace;
+    "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Consolas",
+    "Courier New", monospace;
   font-size: calc(var(--font-size) / 16 * 100%);
   font-stretch: 80%;
   line-height: var(--computed-line-height);
@@ -163,6 +164,28 @@ button {
   }
 }
 
+.input {
+  display: block;
+  width: 100%;
+  background-color: var(--color-layer-0);
+  color: var(--color-text-meta);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: normal;
+  font-size: 1rem;
+  line-height: inherit;
+  height: var(--space-4-5);
+  padding: 0 var(--space-1-5);
+}
+
+.input:focus,
+.input:focus-visible {
+  outline: none;
+  border-color: var(--color-layer-3);
+  color: var(--color-text);
+}
+
 .button {
   border-radius: var(--radius);
   padding: var(--space-1) var(--space-1-5);
@@ -246,6 +269,7 @@ dialog {
   transition: all var(--dialog-open-duration, 0.15s) ease;
   transition-behavior: allow-discrete;
   overflow-x: hidden;
+  box-shadow: 0 0 0 1px var(--color-border);
 
   &::backdrop {
     transition: inherit;
@@ -340,6 +364,9 @@ dialog:open {
   gap: var(--space-2);
   justify-content: space-between;
   padding: var(--space-1-5);
+  position: sticky;
+  top: 0;
+  background-color: var(--color-layer-0);
 }
 
 .top-left {
@@ -840,4 +867,58 @@ dialog:open {
 
 ::view-transition-group(dialog-midi) {
   background-color: var(--color-layer-0);
+}
+
+/* Board list view */
+
+.top h1 {
+  margin: 0;
+  flex: 1;
+  font-size: calc(15 / var(--font-size) * 1rem);
+}
+
+.board-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--space-1-5);
+}
+
+.board-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) 0;
+  cursor: pointer;
+}
+
+.board-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.board-row-info h2 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-row-info p {
+  margin: 0;
+}
+
+.new-board-button {
+  width: 100%;
+  margin-top: var(--space-1-5);
+  margin-bottom: var(--space-1-5);
+}
+
+.action-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.action-button {
+  text-align: left;
+  padding: var(--space-1-5) 0;
 }

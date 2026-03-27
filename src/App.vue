@@ -1,118 +1,138 @@
 <template>
-  <div class="top">
-    <Keyboard
-      :active-key-set="activeKeySet"
-      :now-playing-html="nowPlayingHtml"
+  <BoardListView
+    v-if="showListView"
+    :boards="allBoards"
+    @select-board="onSelectBoard"
+    @create-board="onCreateBoard"
+    @duplicate-board="onDuplicateBoard"
+    @delete-board="onDeleteBoard"
+    @rename-board="onRenameBoard"
+    @open-info="openInfoDialog"
+  />
+  <template v-else>
+    <div class="top">
+      <Keyboard
+        :active-key-set="activeKeySet"
+        :now-playing-html="nowPlayingHtml"
+      />
+      <div class="top-buttons">
+        <button
+          class="icon-button back"
+          type="button"
+          @click="showListView = true"
+          aria-label="Back to boards"
+        >
+          <ArrowLeft
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="20"
+            :absoluteStrokeWidth="true"
+          />
+        </button>
+        <button
+          class="icon-button midi"
+          type="button"
+          @click="openMidiDialog"
+          :disabled="!midiSupported"
+          :title="
+            !midiSupported ? 'Your browser does not support Web MIDI' : ''
+          "
+          aria-label="MIDI settings"
+        >
+          <Icon
+            aria-hidden="true"
+            :iconNode="Midi"
+            :stroke-width="1.5"
+            :size="20"
+            :absoluteStrokeWidth="true"
+          />
+        </button>
+        <button
+          class="icon-button scale"
+          type="button"
+          @click="openGlobalKeyDialog"
+          aria-label="Global scale settings"
+        >
+          <Music2
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="20"
+            :absoluteStrokeWidth="true"
+          />
+        </button>
+      </div>
+    </div>
+    <PadGrid
+      :pads="pads"
+      :permission-allowed="permissionAllowed"
+      :midi-enabled="midiEnabled"
+      :pad-button-label-html="padButtonLabelHtml"
+      @start-pad="onStartPad"
+      @stop-pad="onStopPad"
+      @update-pad="onUpdatePad"
+      @delete="requestDeletePad"
+      @edit="openEditDialog"
     />
-    <div class="top-buttons">
-      <button
-        class="icon-button midi"
-        type="button"
-        @click="openMidiDialog"
-        :disabled="!midiSupported"
-        :title="!midiSupported ? 'Your browser does not support Web MIDI' : ''"
-        aria-label="MIDI settings"
-      >
-        <Icon
-          aria-hidden="true"
-          :iconNode="Midi"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
-        />
-      </button>
-      <button
-        class="icon-button scale"
-        type="button"
-        @click="openGlobalKeyDialog"
-        aria-label="Global scale settings"
-      >
-        <Music2
+    <div v-if="showMidiWarningButton" class="warning">
+      <button class="button-warning" type="button" @click="openMidiDialog">
+        <OctagonAlert
           aria-hidden="true"
           :stroke-width="1.5"
-          :size="20"
+          :size="16"
           :absoluteStrokeWidth="true"
         />
-      </button>
-      <button
-        class="icon-button"
-        type="button"
-        @click="openInfoDialog"
-        aria-label="App information"
-      >
-        <BadgeInfo
-          aria-hidden="true"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
-        />
+        {{ midiWarningLabel }}
       </button>
     </div>
-  </div>
-  <PadGrid
-    :pads="pads"
-    :permission-allowed="permissionAllowed"
-    :midi-enabled="midiEnabled"
-    :pad-button-label-html="padButtonLabelHtml"
-    @start-pad="onStartPad"
-    @stop-pad="onStopPad"
-    @update-pad="onUpdatePad"
-    @delete="requestDeletePad"
-    @edit="openEditDialog"
-  />
-  <div v-if="showMidiWarningButton" class="warning">
-    <button class="button-warning" type="button" @click="openMidiDialog">
-      <OctagonAlert
-        aria-hidden="true"
-        :stroke-width="1.5"
-        :size="16"
-        :absoluteStrokeWidth="true"
-      />
-      {{ midiWarningLabel }}
-    </button>
-  </div>
-  <EditDialog
-    ref="editDialogRef"
-    :pad-index="currentPadIndex"
-    :pad-state="pads[currentPadIndex]"
-    :global-scale-root="preferredGlobalScaleRoot"
-    :global-scale-display="globalScaleDisplayName"
-    :global-scale-type="globalScaleType"
-    :global-scale-enabled="globalScaleEnabled"
-    :permission-allowed="permissionAllowed"
-    :midi-enabled="midiEnabled"
-    @preview-start="onPreviewStart"
-    @preview-stop="onPreviewStop"
-    @save="saveEdit"
-    @close="closeEdit"
-  />
-  <MidiDialog
-    ref="midiDialogRef"
-    :midi-enabled="midiEnabled"
-    :midi-supported="midiSupported"
-    :outputs="outputs"
-    :permission="permission"
-    :permission-prompt="permissionPrompt"
-    v-model:midi-model-output-id="midiModelOutputId"
-    v-model:midi-model-out-ch="midiModelOutCh"
-    :status-display="statusDisplay"
-    :is-midi-dirty="isMidiDirty"
-    @save="saveMidiDialog"
-    @close="closeMidiDialog"
-    @rescan="rescanMidi"
-    @request-permission="handleRequestPermission"
-    @refresh-permission="handleRefreshPermission"
-    @request-connect="handleRequestConnect"
-  />
-  <GlobalKeyDialog
-    ref="globalKeyDialogRef"
-    :model-scale="globalScale"
-    :model-type="globalScaleType"
-    :model-enabled="globalScaleEnabled"
-    :scale-pad-count="scaleModePadCount"
-    @close="onCloseGlobalKey"
-    @save="saveGlobalKey"
-  />
+    <EditDialog
+      ref="editDialogRef"
+      :pad-index="currentPadIndex"
+      :pad-state="pads[currentPadIndex]"
+      :global-scale-root="preferredGlobalScaleRoot"
+      :global-scale-display="globalScaleDisplayName"
+      :global-scale-type="globalScaleType"
+      :global-scale-enabled="globalScaleEnabled"
+      :permission-allowed="permissionAllowed"
+      :midi-enabled="midiEnabled"
+      @preview-start="onPreviewStart"
+      @preview-stop="onPreviewStop"
+      @save="saveEdit"
+      @close="closeEdit"
+    />
+    <MidiDialog
+      ref="midiDialogRef"
+      :midi-enabled="midiEnabled"
+      :midi-supported="midiSupported"
+      :outputs="outputs"
+      :permission="permission"
+      :permission-prompt="permissionPrompt"
+      v-model:midi-model-output-id="midiModelOutputId"
+      v-model:midi-model-out-ch="midiModelOutCh"
+      :status-display="statusDisplay"
+      :is-midi-dirty="isMidiDirty"
+      @save="saveMidiDialog"
+      @close="closeMidiDialog"
+      @rescan="rescanMidi"
+      @request-permission="handleRequestPermission"
+      @refresh-permission="handleRefreshPermission"
+      @request-connect="handleRequestConnect"
+    />
+    <GlobalKeyDialog
+      ref="globalKeyDialogRef"
+      :model-scale="globalScale"
+      :model-type="globalScaleType"
+      :model-enabled="globalScaleEnabled"
+      :scale-pad-count="scaleModePadCount"
+      @close="onCloseGlobalKey"
+      @save="saveGlobalKey"
+    />
+    <PadDeleteDialog
+      ref="padDeleteDialogRef"
+      @confirm="confirmDeletePad"
+      @cancel="cancelDeletePad"
+      @close="onClosePadDeleteDialog"
+    />
+  </template>
   <InfoDialog
     ref="infoDialogRef"
     :midi-supported="midiSupported"
@@ -123,12 +143,6 @@
     @close="onCloseChangelog"
     @dismiss="onDismissChangelog"
   />
-  <PadDeleteDialog
-    ref="padDeleteDialogRef"
-    @confirm="confirmDeletePad"
-    @cancel="cancelDeletePad"
-    @close="onClosePadDeleteDialog"
-  />
 </template>
 
 <script setup>
@@ -136,6 +150,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
 import { Music2, BadgeInfo, OctagonAlert } from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
+import { ArrowLeft } from "lucide-vue-next";
 
 // Icon data for custom Midi icon
 const Midi = [
@@ -193,7 +208,9 @@ import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
 import PadDeleteDialog from "./components/PadDeleteDialog.vue";
+import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
+import { useBoards } from "./composables/useBoards";
 import { Scale, Note } from "@tonaljs/tonal";
 import {
   DEFAULT_EXTENSION,
@@ -230,6 +247,21 @@ const {
   hasValidSavedMidiSettings,
   saveMidiSettings,
 } = useMidi();
+
+const {
+  boards: allBoards,
+  activeBoard,
+  loadBoards,
+  setActiveBoard,
+  createBoard,
+  deleteBoard,
+  renameBoard,
+  duplicateBoard,
+  updateActiveBoardPads,
+  updateActiveBoardScale,
+} = useBoards();
+
+const showListView = ref(true);
 
 const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
@@ -286,35 +318,24 @@ const globalScaleNotes = computed(() => {
   }
 });
 
-const GLOBAL_SCALE_KEY = "chordboard:global-scale";
-
-// Load global scale settings from localStorage
+// Load global scale settings from active board
 function loadGlobalScaleSettings() {
-  try {
-    const raw = localStorage.getItem(GLOBAL_SCALE_KEY);
-    if (!raw) return;
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === "object") {
-      if (obj.scale) globalScale.value = obj.scale;
-      if (obj.type) globalScaleType.value = obj.type;
-      if (typeof obj.enabled === "boolean")
-        globalScaleEnabled.value = obj.enabled;
-    }
-  } catch {}
+  const board = activeBoard.value;
+  if (board && board.scale) {
+    if (board.scale.root) globalScale.value = board.scale.root;
+    if (board.scale.type) globalScaleType.value = board.scale.type;
+    if (typeof board.scale.enabled === "boolean")
+      globalScaleEnabled.value = board.scale.enabled;
+  }
 }
 
-// Save global scale settings to localStorage
+// Save global scale settings to active board
 function saveGlobalScaleSettings() {
-  try {
-    localStorage.setItem(
-      GLOBAL_SCALE_KEY,
-      JSON.stringify({
-        scale: globalScale.value,
-        type: globalScaleType.value,
-        enabled: globalScaleEnabled.value,
-      }),
-    );
-  } catch {}
+  updateActiveBoardScale({
+    root: globalScale.value,
+    type: globalScaleType.value,
+    enabled: globalScaleEnabled.value,
+  });
 }
 
 function openEditDialog(idx) {
@@ -470,6 +491,40 @@ function saveGlobalKey({ scale, type, enabled }) {
   saveGlobalScaleSettings();
 }
 
+// Board management handlers
+function onSelectBoard(boardId) {
+  setActiveBoard(boardId);
+  loadGlobalScaleSettings();
+  loadPads();
+  showListView.value = false;
+}
+
+function onCreateBoard() {
+  const existing = allBoards.value;
+  let num = existing.length + 1;
+  const usedNames = new Set(existing.map((b) => b.name));
+  while (usedNames.has(`Board ${num}`)) num++;
+  const board = createBoard(`Board ${num}`);
+  onSelectBoard(board.id);
+}
+
+function onDuplicateBoard(boardId) {
+  duplicateBoard(boardId);
+}
+
+function onDeleteBoard(boardId) {
+  deleteBoard(boardId);
+  // If we deleted the active board and there are still boards left
+  if (activeBoard.value) {
+    loadGlobalScaleSettings();
+    loadPads();
+  }
+}
+
+function onRenameBoard(boardId, newName) {
+  renameBoard(boardId, newName);
+}
+
 function rescanMidi() {
   try {
     renderDevices();
@@ -531,7 +586,6 @@ function clearVisualDisplay() {
 }
 
 const PAD_COUNT = 12;
-const PADS_KEY = "chordboard:pads";
 
 function defaultPad() {
   return {
@@ -563,43 +617,15 @@ function defaultPad() {
 const pads = ref(Array.from({ length: PAD_COUNT }, defaultPad));
 
 function loadPads() {
-  try {
-    const raw = localStorage.getItem(PADS_KEY);
-    const parsed = JSON.parse(raw || "null");
-    if (Array.isArray(parsed)) {
-      // 1. Load what fits normally
-      const nextPads = pads.value.map((p, i) =>
-        parsed[i] ? { ...defaultPad(), ...parsed[i] } : p,
-      );
-
-      // 2. Identify overflow pads that are assigned
-      const overflow = parsed
-        .slice(PAD_COUNT)
-        .filter((p) => p && p.mode !== "unassigned" && p.assigned !== false);
-
-      // 3. Try to place overflow pads into empty slots (unassigned) in the new grid
-      if (overflow.length > 0) {
-        let overflowIndex = 0;
-        for (let i = 0; i < nextPads.length; i++) {
-          if (overflowIndex >= overflow.length) break;
-          // If this slot is unassigned, fill it
-          if (
-            nextPads[i].mode === "unassigned" ||
-            nextPads[i].assigned === false
-          ) {
-            nextPads[i] = { ...defaultPad(), ...overflow[overflowIndex] };
-            overflowIndex++;
-          }
-        }
-      }
-      pads.value = nextPads;
-    }
-  } catch {}
+  const board = activeBoard.value;
+  if (board && Array.isArray(board.pads)) {
+    pads.value = board.pads.map((p, i) =>
+      p ? { ...defaultPad(), ...p } : defaultPad(),
+    );
+  }
 }
 function savePads() {
-  try {
-    localStorage.setItem(PADS_KEY, JSON.stringify(pads.value));
-  } catch {}
+  updateActiveBoardPads(pads.value);
 }
 
 onMounted(() => {
@@ -609,8 +635,17 @@ onMounted(() => {
       typeof navigator.requestMIDIAccess === "function"),
   );
   updatePermissionStatus();
-  loadGlobalScaleSettings();
-  loadPads();
+
+  // Load boards (handles migration from legacy format)
+  loadBoards();
+
+  // If there's an active board, load it directly into detail view
+  if (activeBoard.value) {
+    loadGlobalScaleSettings();
+    loadPads();
+    showListView.value = false;
+  }
+
   checkChangelog();
 });
 
