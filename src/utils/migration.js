@@ -2,6 +2,8 @@
  * Migration utilities for upgrading Chordboard data structures
  */
 
+import { DEFAULT_EXTENSION } from "./chordSystem";
+
 const LEGACY_PADS_KEY = "chordboard:pads";
 const LEGACY_GLOBAL_SCALE_KEY = "chordboard:global-scale";
 
@@ -17,14 +19,14 @@ function generateBoardId() {
  * Creates a default empty pad
  * @returns {object} Default pad object
  */
-function createDefaultPad() {
+export function createDefaultPad() {
   return {
     mode: "unassigned",
     assigned: false,
     scale: {
       degree: "1",
       octave: 4,
-      extension: "triad",
+      extension: DEFAULT_EXTENSION,
       inversion: "root",
       voicing: "close",
     },
@@ -33,7 +35,7 @@ function createDefaultPad() {
       type: "major",
       accidental: null,
       octave: 4,
-      extension: "triad",
+      extension: DEFAULT_EXTENSION,
       inversion: "root",
       voicing: "close",
     },

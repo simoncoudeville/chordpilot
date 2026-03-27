@@ -3,7 +3,7 @@
  */
 
 import { ref, computed } from "vue";
-import { migrateToBoards } from "../utils/migration";
+import { migrateToBoards, createDefaultPad } from "../utils/migration";
 import { useToast } from "./useToast";
 
 const { showToast } = useToast();
@@ -164,34 +164,6 @@ export function useBoards() {
       saveBoards();
     }
   };
-
-  // Helper function to create default pad
-  function createDefaultPad() {
-    return {
-      mode: "unassigned",
-      assigned: false,
-      scale: {
-        degree: "1",
-        octave: 4,
-        extension: "triad",
-        inversion: "root",
-        voicing: "close",
-      },
-      free: {
-        root: "C",
-        type: "major",
-        accidental: null,
-        octave: 4,
-        extension: "triad",
-        inversion: "root",
-        voicing: "close",
-      },
-      settings: {
-        x: "none",
-        y: "none",
-      },
-    };
-  }
 
   return {
     boards: computed(() => boards.value),

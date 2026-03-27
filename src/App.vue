@@ -213,9 +213,9 @@ import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
 import { useBoards } from "./composables/useBoards";
 import { useToast } from "./composables/useToast";
+import { createDefaultPad } from "./utils/migration";
 import { Scale, Note } from "@tonaljs/tonal";
 import {
-  DEFAULT_EXTENSION,
   normalizeChordType,
   normalizeExtension,
   buildChordDefinition,
@@ -435,7 +435,7 @@ function confirmDeletePad() {
   if (pad && pad.mode !== "unassigned" && pad.assigned !== false) {
     onStopPad(idx, pad, null);
   }
-  pads.value.splice(idx, 1, defaultPad());
+  pads.value.splice(idx, 1, createDefaultPad());
   savePads();
   padDeleteDialogRef.value?.close?.();
   resetDeleteDialogState();
@@ -488,7 +488,7 @@ function saveGlobalKey({ scale, type, enabled }) {
     );
     if (hasAffected) {
       pads.value = pads.value.map((p) =>
-        p && p.mode === "scale" && p.assigned !== false ? defaultPad() : p,
+        p && p.mode === "scale" && p.assigned !== false ? createDefaultPad() : p,
       );
       savePads();
     }
@@ -595,32 +595,6 @@ function clearVisualDisplay() {
 
 const PAD_COUNT = 12;
 
-function defaultPad() {
-  return {
-    mode: "unassigned",
-    assigned: false,
-    scale: {
-      degree: "1",
-      octave: 4,
-      extension: DEFAULT_EXTENSION,
-      inversion: "root",
-      voicing: "close",
-    },
-    free: {
-      root: "C",
-      type: "major",
-      accidental: null,
-      octave: 4,
-      extension: DEFAULT_EXTENSION,
-      inversion: "root",
-      voicing: "close",
-    },
-    settings: {
-      x: "none",
-      y: "none",
-    },
-  };
-}
 
 const pads = ref(Array.from({ length: PAD_COUNT }, defaultPad));
 
@@ -628,7 +602,7 @@ function loadPads() {
   const board = activeBoard.value;
   if (board && Array.isArray(board.pads)) {
     pads.value = board.pads.map((p, i) =>
-      p ? { ...defaultPad(), ...p } : defaultPad(),
+      p ? { ...createDefaultPad(), ...p } : createDefaultPad(),
     );
   }
 }
@@ -732,7 +706,7 @@ watch(
 function saveEdit(snapshot) {
   try {
     const idx = Number(currentPadIndex.value) || 0;
-    const next = { ...defaultPad(), ...snapshot, assigned: true };
+    const next = { ...createDefaultPad(), ...snapshot, assigned: true };
     pads.value.splice(idx, 1, next);
     savePads();
   } catch (e) {
