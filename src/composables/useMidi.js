@@ -97,7 +97,9 @@ export function useMidi() {
     const output = WebMidi.outputs.find((o) => o.id === selectedOutputId.value);
     if (!output) return null;
     const chNum = Number(selectedOutCh.value);
+    if (!Number.isInteger(chNum) || chNum < 1 || chNum > 16) return null;
     const ch = output.channels[chNum];
+    if (!ch) return null;
     return { ch, output, chNum };
   }
 
