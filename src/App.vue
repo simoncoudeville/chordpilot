@@ -674,10 +674,10 @@ watch(
   async (p) => {
     if (p === "granted" && midiSupported.value && !midiEnabled.value) {
       try {
-        // Auto-connect if MIDI was connected in the last session
+        // Auto-connect if MIDI was connected in the last session.
+        // connectMidi() calls applySavedMidiSettings() internally.
         if (midiWasConnected.value) {
           await connectMidi();
-          applySavedMidiSettings();
         }
       } catch (e) {
         console.error("Failed to auto-connect MIDI:", e);
@@ -687,12 +687,12 @@ watch(
   { immediate: false },
 );
 
+// Safety net: if midiEnabled is cleared externally, ensure WebMidi is torn down.
+// applySavedMidiSettings is intentionally NOT called here — connectMidi() handles it.
 watch(
   () => midiEnabled.value,
   (enabled) => {
-    if (enabled) {
-      applySavedMidiSettings();
-    } else {
+    if (!enabled) {
       disconnectMidi();
     }
   },
