@@ -701,7 +701,9 @@ watch(
           await connectMidi();
           applySavedMidiSettings();
         }
-      } catch {}
+      } catch (e) {
+        console.error("Failed to auto-connect MIDI:", e);
+      }
     }
   },
   { immediate: false },
@@ -725,7 +727,9 @@ function saveEdit(snapshot) {
     const next = { ...defaultPad(), ...snapshot, assigned: true };
     pads.value.splice(idx, 1, next);
     savePads();
-  } catch {}
+  } catch (e) {
+    console.error("Failed to save pad edit:", e);
+  }
   closeEdit();
 }
 
@@ -1101,7 +1105,9 @@ function onStartPad(idx, e, coords) {
       sendContinuousExpression(ch, settings.x, coords.x);
       sendContinuousExpression(ch, settings.y, coords.y);
     }
-  } catch {}
+  } catch (e) {
+    console.error("Failed to start pad:", e);
+  }
 }
 
 function onUpdatePad(idx, coords) {
@@ -1115,7 +1121,9 @@ function onUpdatePad(idx, coords) {
     const settings = pad.settings || { x: "none", y: "none" };
     sendContinuousExpression(ch, settings.x, coords.x);
     sendContinuousExpression(ch, settings.y, coords.y);
-  } catch {}
+  } catch (e) {
+    console.warn("Failed to send continuous expression:", e);
+  }
 }
 
 function sendContinuousExpression(ch, func, value) {
@@ -1123,7 +1131,9 @@ function sendContinuousExpression(ch, func, value) {
     // Send channel aftertouch
     try {
       ch.setChannelAftertouch(value);
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to send aftertouch:", e);
+    }
   }
 }
 
@@ -1159,7 +1169,9 @@ function onStopPad(idx) {
           // Schedule stop at least 20ms after start, or now, whichever is later
           const stopTime = Math.max(now, item.time + 20);
           ch.stopNote(item.note, { time: stopTime });
-        } catch {}
+        } catch (e) {
+          console.warn("Failed to stop note:", item.note, e);
+        }
       });
 
       // Legacy cleanup for any notes not in our schedule list (safety net)
@@ -1167,11 +1179,14 @@ function onStopPad(idx) {
         if (!handledNotes.has(n)) {
           try {
             ch.stopNote(n);
-          } catch {}
+          } catch (e) {
+            console.warn("Failed to stop fallback note:", n, e);
+          }
         }
       });
     }
-  } catch {
+  } catch (e) {
+    console.error("Failed to stop pad:", e);
   } finally {
     activePadNotes[idx] = [];
     padSchedules[idx] = [];
@@ -1193,14 +1208,17 @@ function onPreviewStart(payload) {
     activePreviewNotes.value = notes.slice();
     try {
       ch.playNote(notes);
-    } catch {
+    } catch (e) {
+      console.warn("Batch playNote failed, retrying individually:", e);
       for (const n of notes) {
         try {
           ch.playNote(n);
         } catch {}
       }
     }
-  } catch {}
+  } catch (e) {
+    console.error("Failed to start preview:", e);
+  }
 }
 
 function onPreviewStop() {
@@ -1211,14 +1229,16 @@ function onPreviewStop() {
     if (!ch) return;
     try {
       ch.stopNote(activePreviewNotes.value);
-    } catch {
+    } catch (e) {
+      console.warn("Batch stopNote failed, retrying individually:", e);
       for (const n of activePreviewNotes.value) {
         try {
           ch.stopNote(n);
         } catch {}
       }
     }
-  } catch {
+  } catch (e) {
+    console.error("Failed to stop preview:", e);
   } finally {
     activePreviewNotes.value = [];
   }
