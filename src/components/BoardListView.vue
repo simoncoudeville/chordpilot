@@ -124,7 +124,7 @@
   >
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
-        <h2 class="dialog-title">Delete Board?</h2>
+        <h2 class="dialog-title">Delete "{{ deletingBoardName }}"?</h2>
       </div>
       <div class="dialog-content">
         <p class="color-meta">This action cannot be undone.</p>
@@ -171,6 +171,7 @@ const actionsBoardName = ref("");
 const renamingBoardId = ref(null);
 const renamingBoardName = ref("");
 const deletingBoardId = ref(null);
+const deletingBoardName = ref("");
 
 const allBoards = props.boards;
 
@@ -235,9 +236,11 @@ function doDuplicate() {
 
 function startDelete() {
   const boardId = activeBoardId.value;
+  const boardName = actionsBoardName.value;
   closeActionsDialog();
   if (boardId) {
     deletingBoardId.value = boardId;
+    deletingBoardName.value = boardName;
     deleteDialogRef.value?.showModal();
   }
 }
@@ -252,6 +255,7 @@ function confirmDelete() {
 function closeDeleteDialog() {
   deleteDialogRef.value?.close();
   deletingBoardId.value = null;
+  deletingBoardName.value = "";
 }
 
 function formatDate(timestamp) {
