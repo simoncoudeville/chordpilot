@@ -4,6 +4,9 @@
 
 import { ref, computed } from "vue";
 import { migrateToBoards } from "../utils/migration";
+import { useToast } from "./useToast";
+
+const { showToast } = useToast();
 
 const BOARDS_KEY = "chordboard:boards";
 const ACTIVE_BOARD_KEY = "chordboard:active-board-id";
@@ -56,6 +59,7 @@ export function useBoards() {
       localStorage.setItem(BOARDS_KEY, JSON.stringify(boards.value));
     } catch (error) {
       console.error("Failed to save boards:", error);
+      showToast("Could not save boards — storage may be full.");
     }
   };
 
@@ -66,6 +70,7 @@ export function useBoards() {
       }
     } catch (error) {
       console.error("Failed to save active board ID:", error);
+      showToast("Could not save boards — storage may be full.");
     }
   };
 

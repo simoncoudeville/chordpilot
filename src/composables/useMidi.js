@@ -1,5 +1,8 @@
 import { ref, computed } from "vue";
 import { WebMidi } from "webmidi";
+import { useToast } from "./useToast";
+
+const { showToast } = useToast();
 
 export function useMidi() {
   const midiEnabled = ref(false);
@@ -86,6 +89,7 @@ export function useMidi() {
       );
     } catch (e) {
       console.warn("Failed to save MIDI settings:", e);
+      showToast("Could not save MIDI settings — storage may be full.");
     }
   }
 

@@ -143,6 +143,7 @@
     @close="onCloseChangelog"
     @dismiss="onDismissChangelog"
   />
+  <div v-if="toastMessage" class="toast" role="alert">{{ toastMessage }}</div>
 </template>
 
 <script setup>
@@ -211,6 +212,7 @@ import PadDeleteDialog from "./components/PadDeleteDialog.vue";
 import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
 import { useBoards } from "./composables/useBoards";
+import { useToast } from "./composables/useToast";
 import { Scale, Note } from "@tonaljs/tonal";
 import {
   DEFAULT_EXTENSION,
@@ -260,6 +262,8 @@ const {
   updateActiveBoardPads,
   updateActiveBoardScale,
 } = useBoards();
+
+const { toastMessage } = useToast();
 
 const showListView = ref(true);
 
@@ -378,7 +382,11 @@ function onDismissChangelog() {
   // Mark as seen ONLY when explicitly dismissed
   const latestVersion = changelog[0]?.version;
   if (latestVersion) {
-    localStorage.setItem(CHANGELOG_KEY, latestVersion);
+    try {
+      localStorage.setItem(CHANGELOG_KEY, latestVersion);
+    } catch (e) {
+      console.warn("Failed to save changelog seen state:", e);
+    }
   }
 }
 
