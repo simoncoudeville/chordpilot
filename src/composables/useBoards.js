@@ -26,23 +26,21 @@ export function useBoards() {
 
       if (stored) {
         boards.value = JSON.parse(stored);
+        // Restore which board was active
+        const storedActiveId = localStorage.getItem(ACTIVE_BOARD_KEY);
+        if (storedActiveId && boards.value.some((b) => b.id === storedActiveId)) {
+          activeBoardId.value = storedActiveId;
+        } else if (boards.value.length > 0) {
+          activeBoardId.value = boards.value[0].id;
+        }
       } else {
-        // No stored boards, run migration (handles legacy and fresh install)
+        // No stored boards — run migration (handles legacy data and fresh install)
         const { boards: migratedBoards, activeBoardId: initialBoardId } =
           migrateToBoards();
         boards.value = migratedBoards;
         activeBoardId.value = initialBoardId;
         saveBoards();
         saveActiveBoardId();
-        return;
-      }
-
-      // Load active board ID
-      const storedActiveId = localStorage.getItem(ACTIVE_BOARD_KEY);
-      if (storedActiveId && boards.value.some((b) => b.id === storedActiveId)) {
-        activeBoardId.value = storedActiveId;
-      } else if (boards.value.length > 0) {
-        activeBoardId.value = boards.value[0].id;
       }
     } catch (error) {
       console.warn("Failed to load boards:", error);
