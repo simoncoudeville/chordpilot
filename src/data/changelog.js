@@ -1,5 +1,18 @@
 export const changelog = [
   {
+    version: "1.3.0",
+    date: "2026-04-01",
+    title: "Multiple Boards",
+    description:
+      "You can now create and manage multiple boards, each with its own set of pads and global scale settings.",
+    features: [
+      "Create as many boards as you need",
+      "Rename, duplicate, and delete boards",
+      "Each board remembers its own pads and scale settings",
+      "Your last active board is restored on next visit",
+    ],
+  },
+  {
     version: "1.2.2",
     date: "2026-01-26",
     title: "Streamlined Interface",
