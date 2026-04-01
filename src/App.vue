@@ -2,12 +2,14 @@
   <BoardListView
     v-if="showListView"
     :boards="allBoards"
+    :midi-supported="midiSupported"
     @select-board="onSelectBoard"
     @create-board="onCreateBoard"
     @duplicate-board="onDuplicateBoard"
     @delete-board="onDeleteBoard"
     @rename-board="onRenameBoard"
     @open-info="openInfoDialog"
+    @open-midi="openMidiDialog"
   />
   <template v-else>
     <div class="top">
@@ -24,24 +26,6 @@
         >
           <ArrowLeft
             aria-hidden="true"
-            :stroke-width="1.5"
-            :size="20"
-            :absoluteStrokeWidth="true"
-          />
-        </button>
-        <button
-          class="icon-button midi"
-          type="button"
-          @click="openMidiDialog"
-          :disabled="!midiSupported"
-          :title="
-            !midiSupported ? 'Your browser does not support Web MIDI' : ''
-          "
-          aria-label="MIDI settings"
-        >
-          <Icon
-            aria-hidden="true"
-            :iconNode="Midi"
             :stroke-width="1.5"
             :size="20"
             :absoluteStrokeWidth="true"
@@ -73,17 +57,6 @@
       @delete="requestDeletePad"
       @edit="openEditDialog"
     />
-    <div v-if="showMidiWarningButton" class="warning">
-      <button class="button-warning" type="button" @click="openMidiDialog">
-        <OctagonAlert
-          aria-hidden="true"
-          :stroke-width="1.5"
-          :size="16"
-          :absoluteStrokeWidth="true"
-        />
-        {{ midiWarningLabel }}
-      </button>
-    </div>
     <EditDialog
       ref="editDialogRef"
       :pad-index="currentPadIndex"
@@ -98,24 +71,6 @@
       @preview-stop="onPreviewStop"
       @save="saveEdit"
       @close="closeEdit"
-    />
-    <MidiDialog
-      ref="midiDialogRef"
-      :midi-enabled="midiEnabled"
-      :midi-supported="midiSupported"
-      :outputs="outputs"
-      :permission="permission"
-      :permission-prompt="permissionPrompt"
-      v-model:midi-model-output-id="midiModelOutputId"
-      v-model:midi-model-out-ch="midiModelOutCh"
-      :status-display="statusDisplay"
-      :is-midi-dirty="isMidiDirty"
-      @save="saveMidiDialog"
-      @close="closeMidiDialog"
-      @rescan="rescanMidi"
-      @request-permission="handleRequestPermission"
-      @refresh-permission="handleRefreshPermission"
-      @request-connect="handleRequestConnect"
     />
     <GlobalKeyDialog
       ref="globalKeyDialogRef"
@@ -133,6 +88,35 @@
       @close="onClosePadDeleteDialog"
     />
   </template>
+  <div v-if="showMidiWarningButton" class="warning">
+    <button class="button-warning" type="button" @click="openMidiDialog">
+      <OctagonAlert
+        aria-hidden="true"
+        :stroke-width="1.5"
+        :size="16"
+        :absoluteStrokeWidth="true"
+      />
+      {{ midiWarningLabel }}
+    </button>
+  </div>
+  <MidiDialog
+    ref="midiDialogRef"
+    :midi-enabled="midiEnabled"
+    :midi-supported="midiSupported"
+    :outputs="outputs"
+    :permission="permission"
+    :permission-prompt="permissionPrompt"
+    v-model:midi-model-output-id="midiModelOutputId"
+    v-model:midi-model-out-ch="midiModelOutCh"
+    :status-display="statusDisplay"
+    :is-midi-dirty="isMidiDirty"
+    @save="saveMidiDialog"
+    @close="closeMidiDialog"
+    @rescan="rescanMidi"
+    @request-permission="handleRequestPermission"
+    @refresh-permission="handleRefreshPermission"
+    @request-connect="handleRequestConnect"
+  />
   <InfoDialog
     ref="infoDialogRef"
     :midi-supported="midiSupported"

@@ -1,19 +1,37 @@
 <template>
   <div class="top">
     <h1>Chordboard</h1>
-    <button
-      class="icon-button"
-      type="button"
-      @click="$emit('open-info')"
-      aria-label="App information"
-    >
-      <BadgeInfo
-        aria-hidden="true"
-        :stroke-width="1.5"
-        :size="20"
-        :absoluteStrokeWidth="true"
-      />
-    </button>
+    <div class="top-buttons">
+      <button
+        class="icon-button midi"
+        type="button"
+        @click="$emit('open-midi')"
+        :disabled="!midiSupported"
+        :title="!midiSupported ? 'Your browser does not support Web MIDI' : ''"
+        aria-label="MIDI settings"
+      >
+        <Icon
+          aria-hidden="true"
+          :iconNode="Midi"
+          :stroke-width="1.5"
+          :size="20"
+          :absoluteStrokeWidth="true"
+        />
+      </button>
+      <button
+        class="icon-button"
+        type="button"
+        @click="$emit('open-info')"
+        aria-label="App information"
+      >
+        <BadgeInfo
+          aria-hidden="true"
+          :stroke-width="1.5"
+          :size="20"
+          :absoluteStrokeWidth="true"
+        />
+      </button>
+    </div>
   </div>
 
   <div class="board-list">
@@ -143,12 +161,25 @@
 
 <script setup>
 import { ref, nextTick } from "vue";
-import { BadgeInfo, EllipsisVertical } from "lucide-vue-next";
+import { BadgeInfo, EllipsisVertical, Icon } from "lucide-vue-next";
+
+const Midi = [
+  ["path", { d: "M12 18h.01", key: "mhygvu" }],
+  ["path", { d: "M16.24 16.24h.01", key: "1x84wr" }],
+  ["path", { d: "M18 12h.01", key: "yjnet6" }],
+  ["path", { d: "M6 12h.01", key: "c2rlol" }],
+  ["path", { d: "M7.76 16.24h.01", key: "11ncrc" }],
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+];
 
 const props = defineProps({
   boards: {
     type: Array,
     required: true,
+  },
+  midiSupported: {
+    type: Boolean,
+    default: true,
   },
 });
 
@@ -159,6 +190,7 @@ const emit = defineEmits([
   "delete-board",
   "rename-board",
   "open-info",
+  "open-midi",
 ]);
 
 const actionsDialogRef = ref(null);
