@@ -12,39 +12,34 @@
     @open-midi="openMidiDialog"
   />
   <template v-else>
-    <div class="top">
-      <Keyboard
-        :active-key-set="activeKeySet"
-        :now-playing-html="nowPlayingHtml"
-      />
-      <div class="top-buttons">
-        <button
-          class="icon-button back"
-          type="button"
-          @click="showListView = true"
-          aria-label="Back to boards"
-        >
-          <ArrowLeft
-            aria-hidden="true"
-            :stroke-width="1.5"
-            :size="20"
-            :absoluteStrokeWidth="true"
-          />
-        </button>
-        <button
-          class="icon-button scale"
-          type="button"
-          @click="openGlobalKeyDialog"
-          aria-label="Global scale settings"
-        >
-          <Music2
-            aria-hidden="true"
-            :stroke-width="1.5"
-            :size="20"
-            :absoluteStrokeWidth="true"
-          />
-        </button>
-      </div>
+    <div class="top detail-top">
+      <button
+        class="icon-button back"
+        type="button"
+        @click="showListView = true"
+        aria-label="Back to boards"
+      >
+        <ArrowLeft
+          aria-hidden="true"
+          :stroke-width="1.5"
+          :size="20"
+          :absoluteStrokeWidth="true"
+        />
+      </button>
+      <span class="board-title">{{ activeBoard?.name }}</span>
+      <button
+        class="icon-button scale"
+        type="button"
+        @click="openGlobalKeyDialog"
+        aria-label="Global scale settings"
+      >
+        <Music2
+          aria-hidden="true"
+          :stroke-width="1.5"
+          :size="20"
+          :absoluteStrokeWidth="true"
+        />
+      </button>
     </div>
     <PadGrid
       :pads="pads"
@@ -56,6 +51,10 @@
       @update-pad="onUpdatePad"
       @delete="requestDeletePad"
       @edit="openEditDialog"
+    />
+    <Keyboard
+      :active-key-set="activeKeySet"
+      :now-playing-html="nowPlayingHtml"
     />
     <EditDialog
       ref="editDialogRef"

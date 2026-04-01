@@ -381,6 +381,23 @@ dialog:open {
   margin: calc(var(--space-0-5) * -1);
 }
 
+.detail-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0;
+  justify-content: unset;
+  padding: var(--space-0-5);
+}
+
+.board-title {
+  text-align: center;
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 var(--space-1);
+}
+
 .pads {
   --pad-min: 130px;
   padding: 0 var(--space-0-5) var(--space-0-5);
