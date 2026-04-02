@@ -93,16 +93,15 @@
       </div>
       <div class="dialog-content action-list">
         <button class="action-button" type="button" @click="startRename">
+          <Pencil aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
           Rename
         </button>
         <button class="action-button" type="button" @click="doDuplicate">
+          <Copy aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
           Duplicate
         </button>
-        <button
-          class="action-button color-warning"
-          type="button"
-          @click="startDelete"
-        >
+        <button class="action-button color-warning" type="button" @click="startDelete">
+          <Trash2 aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
           Delete
         </button>
       </div>
@@ -168,7 +167,7 @@
 
 <script setup>
 import { ref, nextTick } from "vue";
-import { BadgeInfo, EllipsisVertical, Icon, Plus, X } from "lucide-vue-next";
+import { BadgeInfo, Copy, EllipsisVertical, Icon, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 
 const Midi = [
   ["path", { d: "M12 18h.01", key: "mhygvu" }],

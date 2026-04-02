@@ -247,10 +247,10 @@ button {
 .button-warning {
   width: 100%;
   color: var(--color-warning);
-  padding: var(--space-2) var(--space-1-5);
+  padding: var(--space-2) var(--space-2-5);
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   gap: var(--space-1);
   background-color: var(--color-layer-0);
 }
@@ -909,7 +909,7 @@ dialog:open {
 .board-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 var(--space-2-5);
+  padding: 0 var(--space-2-5) calc(var(--space-5-5) + var(--space-2-5));
 }
 
 .board-row {
@@ -944,8 +944,8 @@ dialog:open {
 
 .fab {
   position: fixed;
-  bottom: var(--space-3);
-  right: var(--space-3);
+  bottom: var(--space-2-5);
+  right: var(--space-2-5);
   width: var(--space-5-5);
   height: var(--space-5-5);
   border-radius: 50%;
@@ -955,6 +955,7 @@ dialog:open {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  z-index: 10;
 }
 
 .action-list {
@@ -963,7 +964,9 @@ dialog:open {
 }
 
 .action-button {
-  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
   padding: var(--space-1-5) 0;
 }
 
