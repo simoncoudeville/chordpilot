@@ -60,13 +60,10 @@
       </button>
     </div>
 
-    <button
-      class="button primary block new-board-button"
-      @click="createNewBoard"
-    >
-      New board
-    </button>
   </div>
+  <button class="fab" type="button" @click="createNewBoard" aria-label="New board">
+    <Plus aria-hidden="true" :stroke-width="2" :size="24" :absoluteStrokeWidth="true" />
+  </button>
 
   <!-- Board Actions Dialog -->
   <dialog
@@ -78,6 +75,21 @@
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <h2 class="dialog-title">{{ actionsBoardName }}</h2>
+        <button
+          type="button"
+          class="dialog-close icon-button"
+          @click="onClose"
+          aria-label="Close"
+        >
+          <X
+            class="dialog-close-icon"
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="16"
+            :absoluteStrokeWidth="true"
+          />
+          <span class="sr-only">Close</span>
+        </button>
       </div>
       <div class="dialog-content action-list">
         <button class="action-button" type="button" @click="startRename">
@@ -92,11 +104,6 @@
           @click="startDelete"
         >
           Delete
-        </button>
-      </div>
-      <div class="dialog-buttons">
-        <button class="button" type="button" @click="closeActionsDialog">
-          Cancel
         </button>
       </div>
     </form>
@@ -161,7 +168,7 @@
 
 <script setup>
 import { ref, nextTick } from "vue";
-import { BadgeInfo, EllipsisVertical, Icon } from "lucide-vue-next";
+import { BadgeInfo, EllipsisVertical, Icon, Plus, X } from "lucide-vue-next";
 
 const Midi = [
   ["path", { d: "M12 18h.01", key: "mhygvu" }],

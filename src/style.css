@@ -107,7 +107,7 @@ hr {
 h2,
 h3,
 h4 {
-  text-transform: uppercase;
+  /* text-transform: uppercase; */
   font-size: 1rem;
   font-weight: var(--font-weight-strong);
 }
@@ -247,7 +247,7 @@ button {
 .button-warning {
   width: 100%;
   color: var(--color-warning);
-  padding: var(--space-1) var(--space-1-5);
+  padding: var(--space-2) var(--space-1-5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -363,7 +363,7 @@ dialog:open {
   align-items: center;
   gap: var(--space-2);
   justify-content: space-between;
-  padding: var(--space-1-5);
+  padding: var(--space-2-5);
   position: sticky;
   top: 0;
   background-color: var(--color-layer-0);
@@ -378,7 +378,14 @@ dialog:open {
 .top-buttons {
   display: flex;
   align-items: center;
-  margin: calc(var(--space-0-5) * -1);
+  margin: calc(var(--space-1) * -1);
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5);
 }
 
 .detail-top {
@@ -386,7 +393,11 @@ dialog:open {
   grid-template-columns: auto 1fr auto;
   gap: 0;
   justify-content: unset;
-  padding: var(--space-0-5);
+  /* padding: var(--space-0-5); */
+
+  .icon-button {
+    margin: calc(var(--space-1) * -1);
+  }
 }
 
 .board-title {
@@ -396,6 +407,7 @@ dialog:open {
   text-overflow: ellipsis;
   white-space: nowrap;
   padding: 0 var(--space-1);
+  text-transform: none;
 }
 
 .pads {
@@ -471,8 +483,8 @@ dialog:open {
   --black-h: calc(18 / var(--font-size) * 1rem); /* black key height */
   --gap: 1px; /* spacing between white keys */
   position: relative;
-  padding: calc(var(--root-dot-size) + 2px) 0;
-  margin: calc(var(--root-dot-size) * -1 - 2px) 0;
+  /* padding: calc(var(--root-dot-size) + 2px) 0; */
+  /* margin: calc(var(--root-dot-size) * -1 - 2px) 0; */
   overflow: hidden;
 }
 
@@ -897,7 +909,7 @@ dialog:open {
 .board-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 var(--space-1-5);
+  padding: 0 var(--space-2-5);
 }
 
 .board-row {
@@ -906,6 +918,10 @@ dialog:open {
   gap: var(--space-1-5);
   padding: var(--space-1-5) 0;
   cursor: pointer;
+
+  .icon-button {
+    margin: calc(var(--space-1) * -1);
+  }
 }
 
 .board-row-info {
@@ -918,16 +934,27 @@ dialog:open {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: none;
 }
 
 .board-row-info p {
   margin: 0;
+  /* text-transform: uppercase; */
 }
 
-.new-board-button {
-  width: 100%;
-  margin-top: var(--space-1-5);
-  margin-bottom: var(--space-1-5);
+.fab {
+  position: fixed;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  width: var(--space-5-5);
+  height: var(--space-5-5);
+  border-radius: 50%;
+  background-color: var(--color-gray-950);
+  color: var(--color-gray-050);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .action-list {
