@@ -7,7 +7,7 @@
   >
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
-        <h2 class="dialog-title">Global Scale</h2>
+        <h2 class="dialog-title">Board Scale</h2>
         <button
           type="button"
           class="dialog-close"
@@ -32,7 +32,7 @@
       </div> -->
       <div class="dialog-content">
         <label class="toggle-label">
-          <span class="label-text">Enable Global Scale</span>
+          <span class="label-text">Enable Board Scale</span>
           <input
             class="checkbox-hidden"
             type="checkbox"
@@ -41,7 +41,7 @@
           <span class="checkbox-toggle"> </span>
         </label>
         <p class="toggle-label-description color-meta">
-          Turning on global scale adds a scale-based chord option to all pads
+          Turning on board scale adds a scale-based chord option to all pads
         </p>
       </div>
       <!-- <div class="dialog-content">
@@ -80,7 +80,7 @@
         v-if="isDirty && scalePadCount > 0 && enabledLocal"
         class="dialog-content color-warning"
       >
-        Changing the global scale will reset
+        Changing the board scale will reset
         {{ scalePadCount }} {{ scalePadCount === 1 ? "pad" : "pads" }}
         currently in Scale mode.
       </div>
@@ -88,7 +88,7 @@
         v-if="isDirty && scalePadCount > 0 && !enabledLocal && modelEnabled"
         class="dialog-content color-warning"
       >
-        Disabling global scale will convert
+        Disabling board scale will convert
         {{ scalePadCount }} {{ scalePadCount === 1 ? "pad" : "pads" }}
         to Free mode.
       </div>

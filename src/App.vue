@@ -26,12 +26,12 @@
           :absoluteStrokeWidth="true"
         />
       </button>
-      <span class="board-title">{{ activeBoard?.name }}</span>
+      <h2 class="board-title">{{ activeBoard?.name }}</h2>
       <button
         class="icon-button scale"
         type="button"
         @click="openGlobalKeyDialog"
-        aria-label="Global scale settings"
+        aria-label="Board scale settings"
       >
         <Music2
           aria-hidden="true"
@@ -52,10 +52,12 @@
       @delete="requestDeletePad"
       @edit="openEditDialog"
     />
-    <Keyboard
-      :active-key-set="activeKeySet"
-      :now-playing-html="nowPlayingHtml"
-    />
+    <div class="bottom">
+      <Keyboard
+        :active-key-set="activeKeySet"
+        :now-playing-html="nowPlayingHtml"
+      />
+    </div>
     <EditDialog
       ref="editDialogRef"
       :pad-index="currentPadIndex"
@@ -479,7 +481,9 @@ function saveGlobalKey({ scale, type, enabled }) {
     );
     if (hasAffected) {
       pads.value = pads.value.map((p) =>
-        p && p.mode === "scale" && p.assigned !== false ? createDefaultPad() : p,
+        p && p.mode === "scale" && p.assigned !== false
+          ? createDefaultPad()
+          : p,
       );
       savePads();
     }
@@ -583,7 +587,6 @@ function clearVisualDisplay() {
 }
 
 const PAD_COUNT = 12;
-
 
 const pads = ref(Array.from({ length: PAD_COUNT }, createDefaultPad));
 function savePads() {
