@@ -123,6 +123,12 @@
     @close="onCloseChangelog"
     @dismiss="onDismissChangelog"
   />
+  <FeedbackDialog
+    ref="feedbackDialogRef"
+    :feedback-url="FEEDBACK_FORM_URL"
+    @close="onCloseFeedback"
+    @dismiss="onDismissFeedback"
+  />
   <PadDeleteDialog
     ref="padDeleteDialogRef"
     @confirm="confirmDeletePad"
@@ -192,6 +198,7 @@ import MidiDialog from "./components/MidiDialog.vue";
 import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
+import FeedbackDialog from "./components/FeedbackDialog.vue";
 import PadDeleteDialog from "./components/PadDeleteDialog.vue";
 import { useMidi } from "./composables/useMidi";
 import { Scale, Note } from "@tonaljs/tonal";
@@ -240,7 +247,9 @@ const midiDialogRef = ref(null);
 const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
+const feedbackDialogRef = ref(null);
 const padDeleteDialogRef = ref(null);
+const feedbackPromptScheduled = ref(false);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
@@ -351,6 +360,7 @@ function onCloseInfo() {}
 
 function onCloseChangelog() {
   // Do nothing when closed normally (will show again next time)
+  maybeShowFeedbackPrompt();
 }
 
 function onDismissChangelog() {
@@ -359,13 +369,16 @@ function onDismissChangelog() {
   if (latestVersion) {
     localStorage.setItem(CHANGELOG_KEY, latestVersion);
   }
+  maybeShowFeedbackPrompt();
 }
 
 const CHANGELOG_KEY = "chordboard:changelog-seen";
+const FEEDBACK_KEY = "chordboard:feedback-dismissed";
+const FEEDBACK_FORM_URL = "https://forms.gle/TajVcezBtj3tN3qu9";
 
 function checkChangelog() {
   const latestVersion = changelog[0]?.version;
-  if (!latestVersion) return;
+  if (!latestVersion) return false;
 
   const seenVersion = localStorage.getItem(CHANGELOG_KEY);
   if (seenVersion !== latestVersion) {
@@ -374,7 +387,27 @@ function checkChangelog() {
     setTimeout(() => {
       changelogDialogRef.value?.open?.();
     }, 500);
+    return true;
   }
+  return false;
+}
+
+function onCloseFeedback() {
+  // Keep showing in future sessions unless explicitly dismissed.
+}
+
+function onDismissFeedback() {
+  localStorage.setItem(FEEDBACK_KEY, "1");
+}
+
+function maybeShowFeedbackPrompt() {
+  if (feedbackPromptScheduled.value) return;
+  if (localStorage.getItem(FEEDBACK_KEY) === "1") return;
+
+  feedbackPromptScheduled.value = true;
+  setTimeout(() => {
+    feedbackDialogRef.value?.open?.();
+  }, 450);
 }
 
 function requestDeletePad(idx) {
@@ -611,7 +644,10 @@ onMounted(() => {
   updatePermissionStatus();
   loadGlobalScaleSettings();
   loadPads();
-  checkChangelog();
+  const changelogScheduled = checkChangelog();
+  if (!changelogScheduled) {
+    maybeShowFeedbackPrompt();
+  }
 });
 
 onBeforeUnmount(() => {
