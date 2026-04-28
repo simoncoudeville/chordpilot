@@ -104,6 +104,7 @@ hr {
   background-color: var(--color-border);
 }
 
+h1,
 h2,
 h3,
 h4 {
@@ -217,6 +218,10 @@ button {
   text-align: center;
 }
 
+.icon-button--meta {
+  color: var(--color-text-meta);
+}
+
 .info-list {
   list-style: none;
   display: grid;
@@ -325,6 +330,10 @@ dialog:open {
   padding-bottom: var(--space-2-5);
 }
 
+.dialog-body--no-top {
+  padding: var(--space-1) 0;
+}
+
 .dialog-top {
   background-color: var(--color-layer-0);
   padding: var(--space-2-5);
@@ -385,7 +394,8 @@ dialog:open {
   display: flex;
   align-items: center;
   gap: var(--space-1-5);
-  padding: var(--space-1-5);
+  /* padding: var(--space-1-5); */
+  padding: 0 2px 2px;
 }
 
 .detail-top {
@@ -445,7 +455,7 @@ dialog:open {
   text-box-trim: trim-both;
   border: none;
   background-color: var(--color-layer-2);
-  color: var(--color-text-weak);
+  /* color: var(--color-text-weak); */
   border-radius: 4px;
   text-align: left;
   text-transform: none;
@@ -473,6 +483,27 @@ dialog:open {
   & span {
     text-box-trim: trim-both;
   }
+}
+
+.pad-content {
+  display: grid;
+  gap: var(--space-0-5);
+  /* gap: 2px; */
+}
+
+.pad-title {
+  color: inherit;
+}
+
+.pad-notes {
+  color: var(--color-text-meta);
+  /* font-size: var(--font-size-sm);
+  line-height: 1.2; */
+  text-transform: none;
+}
+
+.pad-play.is-pressed .pad-notes {
+  color: color-mix(in srgb, var(--color-layer-0) 72%, transparent);
 }
 
 .keyboard {
@@ -764,8 +795,6 @@ dialog:open {
 
   .label-text {
     padding-bottom: 0;
-    text-transform: none;
-    font-weight: var(--font-weight-normal);
   }
 }
 
@@ -909,6 +938,7 @@ dialog:open {
 .board-list {
   flex: 1;
   overflow-y: auto;
+  margin-top: calc(var(--space-1) * -1);
   padding: 0 var(--space-2-5) calc(var(--space-5-5) + var(--space-2-5));
 }
 

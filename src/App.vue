@@ -46,18 +46,22 @@
       :permission-allowed="permissionAllowed"
       :midi-enabled="midiEnabled"
       :pad-button-label-html="padButtonLabelHtml"
+      :pad-note-label="padNoteLabel"
       @start-pad="onStartPad"
       @stop-pad="onStopPad"
       @update-pad="onUpdatePad"
       @delete="requestDeletePad"
       @edit="openEditDialog"
     />
-    <div class="bottom">
-      <Keyboard
-        :active-key-set="activeKeySet"
-        :now-playing-html="nowPlayingHtml"
-      />
-    </div>
+    <!--
+      <div class="bottom">
+        <KeyboardExtended
+        :highlighted-notes="currentlyPlayingNoteNames"
+        :start-octave="1"
+        :octaves="7"
+        />
+      </div>
+    -->
     <EditDialog
       ref="editDialogRef"
       :pad-index="currentPadIndex"
@@ -186,7 +190,7 @@ const Midi = [
   ],
 ];
 
-import Keyboard from "./components/Keyboard.vue";
+import KeyboardExtended from "./components/KeyboardExtended.vue";
 import PadGrid from "./components/PadGrid.vue";
 import EditDialog from "./components/EditDialog.vue";
 import MidiDialog from "./components/MidiDialog.vue";
@@ -205,7 +209,6 @@ import {
   normalizeExtension,
   buildChordDefinition,
 } from "./utils/chordSystem";
-import { pcToKeyToken } from "./utils/music";
 import {
   formatNoteName,
   formatChordSymbol,
@@ -937,6 +940,20 @@ function padButtonLabelHtml(pad) {
   );
 }
 
+function padNoteLabel(pad) {
+  const notes = padNotes(pad);
+  if (!notes.length) return "";
+  return notes
+    .map((note) =>
+      formatNoteName(
+        simplifyNoteName(note),
+        preferredGlobalScaleRoot.value,
+        globalScaleType.value,
+      ),
+    )
+    .join(" ");
+}
+
 import { reactive } from "vue";
 const activePadNotes = reactive({});
 
@@ -1161,6 +1178,17 @@ const activePreviewNotes = ref([]);
 // Track the last played chord to keep it visible on keyboard
 const lastPlayedNotes = ref([]);
 
+// Notes that are currently sounding right now (pads + preview).
+const currentlyPlayingNoteNames = computed(() => {
+  const fromPads = Object.values(activePadNotes).flatMap((arr) =>
+    Array.isArray(arr) ? arr : [],
+  );
+  const fromPreview = Array.isArray(activePreviewNotes.value)
+    ? activePreviewNotes.value
+    : [];
+  return simplifyNoteList([...fromPads, ...fromPreview]);
+});
+
 function onPreviewStart(payload) {
   try {
     const rawNotes = Array.isArray(payload?.notes) ? payload.notes : [];
@@ -1221,17 +1249,6 @@ const activeNoteNames = computed(() => {
     return simplifyNoteList(lastPlayedNotes.value);
   }
   return simplifyNoteList(fromPads);
-});
-
-// Active keys as a Set of lowercase pitch-class tokens for Keyboard.vue
-const activeKeySet = computed(() => {
-  const set = new Set();
-  for (const n of activeNoteNames.value) {
-    const info = Note.get(n);
-    const token = pcToKeyToken(info?.pc);
-    if (token) set.add(token);
-  }
-  return set;
 });
 
 // Human-friendly now playing line

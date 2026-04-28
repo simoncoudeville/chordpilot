@@ -10,7 +10,7 @@
         <h2 class="dialog-title">Info</h2>
         <button
           type="button"
-          class="dialog-close"
+          class="dialog-close icon-button"
           @click="onClose"
           aria-label="Close"
         >
@@ -133,7 +133,7 @@ const dlg = ref(null);
 const midiSupportMessage = computed(() =>
   props.midiSupported
     ? "Great! Your browser supports Web MIDI. "
-    : "Unfortunately your browser does not support Web MIDI. Try Chrome on Android or on a desktop browser."
+    : "Unfortunately your browser does not support Web MIDI. Try Chrome on Android or on a desktop browser.",
 );
 
 function formatDate(dateStr) {

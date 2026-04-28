@@ -46,7 +46,7 @@
         <p class="color-meta">{{ formatDate(board.createdAt) }}</p>
       </div>
       <button
-        class="icon-button"
+        class="icon-button icon-button--meta"
         type="button"
         @click.stop="openBoardMenu(board.id)"
         aria-label="Board options"
@@ -59,10 +59,19 @@
         />
       </button>
     </div>
-
   </div>
-  <button class="fab" type="button" @click="createNewBoard" aria-label="New board">
-    <Plus aria-hidden="true" :stroke-width="2" :size="24" :absoluteStrokeWidth="true" />
+  <button
+    class="fab"
+    type="button"
+    @click="createNewBoard"
+    aria-label="New board"
+  >
+    <Plus
+      aria-hidden="true"
+      :stroke-width="2"
+      :size="24"
+      :absoluteStrokeWidth="true"
+    />
   </button>
 
   <!-- Board Actions Dialog -->
@@ -72,36 +81,37 @@
     @click.self="closeActionsDialog"
     @cancel.prevent="closeActionsDialog"
   >
-    <form class="dialog-body" method="dialog" @submit.prevent>
-      <div class="dialog-top">
-        <h2 class="dialog-title">{{ actionsBoardName }}</h2>
-        <button
-          type="button"
-          class="dialog-close icon-button"
-          @click="onClose"
-          aria-label="Close"
-        >
-          <X
-            class="dialog-close-icon"
+    <form
+      class="dialog-body dialog-body--no-top"
+      method="dialog"
+      @submit.prevent
+    >
+      <div class="dialog-content action-list">
+        <button class="action-button" type="button" @click="startRename">
+          <Pencil
             aria-hidden="true"
             :stroke-width="1.5"
             :size="16"
             :absoluteStrokeWidth="true"
           />
-          <span class="sr-only">Close</span>
-        </button>
-      </div>
-      <div class="dialog-content action-list">
-        <button class="action-button" type="button" @click="startRename">
-          <Pencil aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
           Rename
         </button>
         <button class="action-button" type="button" @click="doDuplicate">
-          <Copy aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
+          <Copy
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="16"
+            :absoluteStrokeWidth="true"
+          />
           Duplicate
         </button>
-        <button class="action-button color-warning" type="button" @click="startDelete">
-          <Trash2 aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
+        <button class="action-button" type="button" @click="startDelete">
+          <Trash2
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="16"
+            :absoluteStrokeWidth="true"
+          />
           Delete
         </button>
       </div>
@@ -117,6 +127,21 @@
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <h2 class="dialog-title">Rename Board</h2>
+        <button
+          type="button"
+          class="dialog-close"
+          @click="closeRenameDialog"
+          aria-label="Close"
+        >
+          <X
+            class="dialog-close-icon"
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="16"
+            :absoluteStrokeWidth="true"
+          />
+          <span class="sr-only">Close</span>
+        </button>
       </div>
       <div class="dialog-content">
         <input
@@ -149,6 +174,21 @@
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <h2 class="dialog-title">Delete "{{ deletingBoardName }}"?</h2>
+        <button
+          type="button"
+          class="dialog-close"
+          @click="closeDeleteDialog"
+          aria-label="Close"
+        >
+          <X
+            class="dialog-close-icon"
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="16"
+            :absoluteStrokeWidth="true"
+          />
+          <span class="sr-only">Close</span>
+        </button>
       </div>
       <div class="dialog-content">
         <p class="color-meta">This action cannot be undone.</p>
@@ -167,7 +207,16 @@
 
 <script setup>
 import { ref, nextTick } from "vue";
-import { BadgeInfo, Copy, EllipsisVertical, Icon, Pencil, Plus, Trash2, X } from "lucide-vue-next";
+import {
+  BadgeInfo,
+  Copy,
+  EllipsisVertical,
+  Icon,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-vue-next";
 
 const Midi = [
   ["path", { d: "M12 18h.01", key: "mhygvu" }],
