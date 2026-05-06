@@ -68,8 +68,8 @@
   >
     <Plus
       aria-hidden="true"
-      :stroke-width="2"
-      :size="24"
+      :stroke-width="1.5"
+      :size="20"
       :absoluteStrokeWidth="true"
     />
   </button>
