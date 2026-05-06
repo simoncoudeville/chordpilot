@@ -1,48 +1,54 @@
 <template>
-  <BoardListView
-    v-if="showListView"
-    :boards="allBoards"
-    :midi-supported="midiSupported"
-    @select-board="onSelectBoard"
-    @create-board="onCreateBoard"
-    @duplicate-board="onDuplicateBoard"
-    @delete-board="onDeleteBoard"
-    @rename-board="onRenameBoard"
-    @open-info="openInfoDialog"
-    @open-midi="openMidiDialog"
-  />
-  <BoardView
-    v-if="!showListView"
-    ref="boardViewRef"
-    :board-name="activeBoard?.name"
-    :pads="pads"
-    :pad-index="currentPadIndex"
-    :permission-allowed="permissionAllowed"
-    :midi-enabled="midiEnabled"
-    :pad-button-label-html="padButtonLabelHtml"
-    :pad-note-label="padNoteLabel"
-    :global-scale="globalScale"
-    :global-scale-root="preferredGlobalScaleRoot"
-    :global-scale-display="globalScaleDisplayName"
-    :global-scale-type="globalScaleType"
-    :global-scale-enabled="globalScaleEnabled"
-    :scale-pad-count="scaleModePadCount"
-    @back="showListView = true"
-    @start-pad="onStartPad"
-    @stop-pad="onStopPad"
-    @update-pad="onUpdatePad"
-    @delete="requestDeletePad"
-    @edit="openEditDialog"
-    @preview-start="onPreviewStart"
-    @preview-stop="onPreviewStop"
-    @save-edit="saveEdit"
-    @close-edit="closeEdit"
-    @close-global-key="onCloseGlobalKey"
-    @save-global-key="saveGlobalKey"
-    @confirm-delete="confirmDeletePad"
-    @cancel-delete="cancelDeletePad"
-    @close-delete="onClosePadDeleteDialog"
-  />
+  <div class="view-shell">
+    <Transition :name="viewTransitionName">
+      <div v-if="showListView" key="list" class="view-panel">
+        <BoardListView
+          :boards="allBoards"
+          :midi-supported="midiSupported"
+          @select-board="onSelectBoard"
+          @create-board="onCreateBoard"
+          @duplicate-board="onDuplicateBoard"
+          @delete-board="onDeleteBoard"
+          @rename-board="onRenameBoard"
+          @open-info="openInfoDialog"
+          @open-midi="openMidiDialog"
+        />
+      </div>
+      <div v-else key="detail" class="view-panel">
+        <BoardView
+          ref="boardViewRef"
+          :board-name="activeBoard?.name"
+          :pads="pads"
+          :pad-index="currentPadIndex"
+          :permission-allowed="permissionAllowed"
+          :midi-enabled="midiEnabled"
+          :pad-button-label-html="padButtonLabelHtml"
+          :pad-note-label="padNoteLabel"
+          :global-scale="globalScale"
+          :global-scale-root="preferredGlobalScaleRoot"
+          :global-scale-display="globalScaleDisplayName"
+          :global-scale-type="globalScaleType"
+          :global-scale-enabled="globalScaleEnabled"
+          :scale-pad-count="scaleModePadCount"
+          @back="goBackToList"
+          @start-pad="onStartPad"
+          @stop-pad="onStopPad"
+          @update-pad="onUpdatePad"
+          @delete="requestDeletePad"
+          @edit="openEditDialog"
+          @preview-start="onPreviewStart"
+          @preview-stop="onPreviewStop"
+          @save-edit="saveEdit"
+          @close-edit="closeEdit"
+          @close-global-key="onCloseGlobalKey"
+          @save-global-key="saveGlobalKey"
+          @confirm-delete="confirmDeletePad"
+          @cancel-delete="cancelDeletePad"
+          @close-delete="onClosePadDeleteDialog"
+        />
+      </div>
+    </Transition>
+  </div>
   <div class="toast warning" popover="manual" ref="midiWarningRef">
     <button
       class="button-warning"
@@ -110,7 +116,14 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import { Music2, BadgeInfo, InfoIcon, AlertTriangle, OctagonAlert, X } from "lucide-vue-next";
+import {
+  Music2,
+  BadgeInfo,
+  InfoIcon,
+  AlertTriangle,
+  OctagonAlert,
+  X,
+} from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
 import { ArrowLeft } from "lucide-vue-next";
 
@@ -228,6 +241,7 @@ const {
 const { toastMessage } = useToast();
 
 const showListView = ref(true);
+const viewTransitionName = ref("view-push-forward");
 
 const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
@@ -476,9 +490,15 @@ function saveGlobalKey({ scale, type, enabled }) {
 
 // Board management handlers
 function onSelectBoard(boardId) {
+  viewTransitionName.value = "view-push-forward";
   setActiveBoard(boardId);
   loadActiveBoardState();
   showListView.value = false;
+}
+
+function goBackToList() {
+  viewTransitionName.value = "view-push-back";
+  showListView.value = true;
 }
 
 function onCreateBoard() {

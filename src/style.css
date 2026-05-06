@@ -90,8 +90,57 @@ html {
 
 #app {
   min-height: 100svh;
+}
+
+.view-panel {
+  min-height: 100svh;
   display: grid;
   grid-template-rows: auto 1fr;
+  position: relative;
+  isolation: isolate;
+}
+
+.view-push-forward-enter-active,
+.view-push-forward-leave-active,
+.view-push-back-enter-active,
+.view-push-back-leave-active {
+  transition:
+    transform 5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-layer-0);
+}
+
+.view-push-forward-enter-active,
+.view-push-back-leave-active {
+  z-index: 2;
+}
+
+.view-push-forward-leave-active,
+.view-push-back-enter-active {
+  z-index: 1;
+}
+
+.view-push-forward-enter-from {
+  transform: translateX(100%);
+  opacity: 1;
+}
+
+.view-push-forward-leave-to {
+  transform: translateX(-25%);
+  opacity: 0.3;
+}
+
+.view-push-back-enter-from {
+  transform: translateX(-25%);
+  opacity: 0.3;
+}
+
+.view-push-back-leave-to {
+  transform: translateX(100%);
+  opacity: 1;
 }
 
 svg {
