@@ -11,79 +11,38 @@
     @open-info="openInfoDialog"
     @open-midi="openMidiDialog"
   />
-  <template v-else>
-    <div class="top detail-top">
-      <button
-        class="icon-button back"
-        type="button"
-        @click="showListView = true"
-        aria-label="Back to boards"
-      >
-        <ArrowLeft
-          aria-hidden="true"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
-        />
-      </button>
-      <h2 class="board-title">{{ activeBoard?.name }}</h2>
-      <button
-        class="icon-button scale"
-        type="button"
-        @click="openGlobalKeyDialog"
-        aria-label="Board scale settings"
-      >
-        <Music2
-          aria-hidden="true"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
-        />
-      </button>
-    </div>
-    <PadGrid
-      :pads="pads"
-      :permission-allowed="permissionAllowed"
-      :midi-enabled="midiEnabled"
-      :pad-button-label-html="padButtonLabelHtml"
-      :pad-note-label="padNoteLabel"
-      @start-pad="onStartPad"
-      @stop-pad="onStopPad"
-      @update-pad="onUpdatePad"
-      @delete="requestDeletePad"
-      @edit="openEditDialog"
-    />
-    <EditDialog
-      ref="editDialogRef"
-      :pad-index="currentPadIndex"
-      :pad-state="pads[currentPadIndex]"
-      :global-scale-root="preferredGlobalScaleRoot"
-      :global-scale-display="globalScaleDisplayName"
-      :global-scale-type="globalScaleType"
-      :global-scale-enabled="globalScaleEnabled"
-      :permission-allowed="permissionAllowed"
-      :midi-enabled="midiEnabled"
-      @preview-start="onPreviewStart"
-      @preview-stop="onPreviewStop"
-      @save="saveEdit"
-      @close="closeEdit"
-    />
-    <GlobalKeyDialog
-      ref="globalKeyDialogRef"
-      :model-scale="globalScale"
-      :model-type="globalScaleType"
-      :model-enabled="globalScaleEnabled"
-      :scale-pad-count="scaleModePadCount"
-      @close="onCloseGlobalKey"
-      @save="saveGlobalKey"
-    />
-    <PadDeleteDialog
-      ref="padDeleteDialogRef"
-      @confirm="confirmDeletePad"
-      @cancel="cancelDeletePad"
-      @close="onClosePadDeleteDialog"
-    />
-  </template>
+  <BoardView
+    v-if="!showListView"
+    ref="boardViewRef"
+    :board-name="activeBoard?.name"
+    :pads="pads"
+    :pad-index="currentPadIndex"
+    :permission-allowed="permissionAllowed"
+    :midi-enabled="midiEnabled"
+    :pad-button-label-html="padButtonLabelHtml"
+    :pad-note-label="padNoteLabel"
+    :global-scale="globalScale"
+    :global-scale-root="preferredGlobalScaleRoot"
+    :global-scale-display="globalScaleDisplayName"
+    :global-scale-type="globalScaleType"
+    :global-scale-enabled="globalScaleEnabled"
+    :scale-pad-count="scaleModePadCount"
+    @back="showListView = true"
+    @start-pad="onStartPad"
+    @stop-pad="onStopPad"
+    @update-pad="onUpdatePad"
+    @delete="requestDeletePad"
+    @edit="openEditDialog"
+    @preview-start="onPreviewStart"
+    @preview-stop="onPreviewStop"
+    @save-edit="saveEdit"
+    @close-edit="closeEdit"
+    @close-global-key="onCloseGlobalKey"
+    @save-global-key="saveGlobalKey"
+    @confirm-delete="confirmDeletePad"
+    @cancel-delete="cancelDeletePad"
+    @close-delete="onClosePadDeleteDialog"
+  />
   <div class="toast warning" popover="manual" ref="midiWarningRef">
     <button
       class="button-warning"
@@ -151,14 +110,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import {
-  Music2,
-  BadgeInfo,
-  InfoIcon,
-  AlertTriangle,
-  OctagonAlert,
-  X,
-} from "lucide-vue-next";
+import { Music2, BadgeInfo, InfoIcon, AlertTriangle, OctagonAlert, X } from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
 import { ArrowLeft } from "lucide-vue-next";
 
@@ -212,6 +164,7 @@ const Midi = [
 
 import KeyboardExtended from "./components/KeyboardExtended.vue";
 import Keyboard from "./components/Keyboard.vue";
+import BoardView from "./components/BoardView.vue";
 import PadGrid from "./components/PadGrid.vue";
 import EditDialog from "./components/EditDialog.vue";
 import MidiDialog from "./components/MidiDialog.vue";
@@ -286,6 +239,7 @@ const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
 const padDeleteDialogRef = ref(null);
+const boardViewRef = ref(null);
 const midiWarningRef = ref(null);
 const toastRef = ref(null);
 
@@ -364,7 +318,7 @@ function saveGlobalScaleSettings() {
 function openEditDialog(idx) {
   clearVisualDisplay();
   currentPadIndex.value = idx;
-  editDialogRef.value?.open?.();
+  boardViewRef.value?.openEditDialog(idx);
 }
 
 function openMidiDialog() {
@@ -381,7 +335,7 @@ function closeMidiDialog() {
 
 function openGlobalKeyDialog() {
   clearVisualDisplay();
-  globalKeyDialogRef.value?.open?.();
+  boardViewRef.value?.openGlobalKeyDialog();
 }
 
 function onCloseGlobalKey() {}
@@ -427,7 +381,7 @@ function checkChangelog() {
 
 function requestDeletePad(idx) {
   deleteConfirmIndex.value = idx;
-  padDeleteDialogRef.value?.open?.();
+  boardViewRef.value?.openPadDeleteDialog();
 }
 
 function resetDeleteDialogState() {
@@ -435,7 +389,7 @@ function resetDeleteDialogState() {
 }
 
 function cancelDeletePad() {
-  padDeleteDialogRef.value?.close?.();
+  boardViewRef.value?.closePadDeleteDialog();
   resetDeleteDialogState();
 }
 
@@ -456,7 +410,7 @@ function confirmDeletePad() {
   }
   pads.value.splice(idx, 1, createDefaultPad());
   savePads();
-  padDeleteDialogRef.value?.close?.();
+  boardViewRef.value?.closePadDeleteDialog();
   resetDeleteDialogState();
 }
 
@@ -757,7 +711,7 @@ function saveEdit(snapshot) {
 }
 
 function closeEdit() {
-  editDialogRef.value?.close?.();
+  boardViewRef.value?.closeEditDialog();
 }
 
 // Build chord label and notes from pad state
