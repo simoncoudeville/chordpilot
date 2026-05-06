@@ -622,12 +622,6 @@ onMounted(() => {
   // Load boards (handles migration from legacy format)
   loadBoards();
 
-  // If there's an active board, load it directly into detail view
-  if (activeBoard.value) {
-    loadActiveBoardState();
-    showListView.value = false;
-  }
-
   checkChangelog();
 
   if (showMidiWarningButton.value) {

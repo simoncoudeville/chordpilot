@@ -36,7 +36,7 @@
 
   <div class="board-list">
     <div
-      v-for="board in allBoards"
+      v-for="board in props.boards"
       :key="board.id"
       class="board-row"
       @click="selectBoard(board.id)"
@@ -260,8 +260,6 @@ const renamingBoardId = ref(null);
 const renamingBoardName = ref("");
 const deletingBoardId = ref(null);
 const deletingBoardName = ref("");
-
-const allBoards = props.boards;
 
 function selectBoard(boardId) {
   emit("select-board", boardId);
