@@ -24,7 +24,7 @@
         @click="$emit('open-info')"
         aria-label="App information"
       >
-        <BadgeInfo
+        <InfoIcon
           aria-hidden="true"
           :stroke-width="1.5"
           :size="20"
@@ -212,6 +212,7 @@ import {
   Copy,
   EllipsisVertical,
   Icon,
+  InfoIcon,
   Pencil,
   Plus,
   Trash2,

@@ -27,9 +27,6 @@
       >
         <span class="pad-content">
           <span class="pad-title">{{ padButtonLabelHtml(pad) }}</span>
-          <span v-if="padNoteLabel(pad)" class="pad-notes">{{
-            padNoteLabel(pad)
-          }}</span>
         </span>
       </button>
       <div

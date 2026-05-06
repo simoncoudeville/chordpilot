@@ -78,6 +78,7 @@ html {
     "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Consolas",
     "Courier New", monospace;
   font-size: calc(var(--font-size) / 16 * 100%);
+  /* font-size: 68.75%; */
   font-stretch: 80%;
   line-height: var(--computed-line-height);
   background-color: var(--color-layer-0);
@@ -243,21 +244,46 @@ button {
   font-weight: normal;
 }
 
-.warning {
-  position: fixed;
-  bottom: 0;
-  inset: auto 0 0 0;
+.toast {
+  background-color: var(--color-layer-0);
+  border: none;
+  padding: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--color-border);
+  color: inherit;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  margin: auto var(--space-2-5) var(--space-2-5);
+  width: auto;
+  /* Transition */
+  opacity: 0;
+  transform: translateY(calc(var(--space-2) * 1));
+  transition: all var(--dialog-open-duration, 0.15s) ease;
+  transition-behavior: allow-discrete;
+}
+
+.toast:popover-open {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .button-warning {
-  width: 100%;
-  color: var(--color-warning);
-  padding: var(--space-2) var(--space-2-5);
+  /* color: var(--color-warning); */
+  padding: var(--space-1-5) var(--space-2);
   display: flex;
   align-items: center;
-  /* justify-content: center; */
   gap: var(--space-1);
-  background-color: var(--color-layer-0);
+  white-space: nowrap;
+
+  svg {
+    stroke: var(--color-warning);
+  }
+}
+
+.popover-close {
+  padding: var(--space-1-5);
 }
 
 dialog {
@@ -274,12 +300,12 @@ dialog {
   transition: all var(--dialog-open-duration, 0.15s) ease;
   transition-behavior: allow-discrete;
   overflow-x: hidden;
-  box-shadow: 0 0 0 1px var(--color-border);
+  /* box-shadow: 0 0 0 1px var(--color-border); */
 
   &::backdrop {
     transition: inherit;
     opacity: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: hsl(0 0% 15% / 0.5);
   }
 }
 
@@ -321,6 +347,11 @@ dialog:open {
   .dialog-bottom:open {
     opacity: 1;
     transform: translateY(100%);
+  }
+
+  .toast:popover-open {
+    opacity: 0;
+    transform: translateY(calc(var(--space-2) * 1));
   }
 }
 
@@ -998,19 +1029,4 @@ dialog:open {
   align-items: center;
   gap: var(--space-1-5);
   padding: var(--space-1-5) 0;
-}
-
-.toast {
-  position: fixed;
-  bottom: var(--space-3);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-layer-1);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: var(--space-1) var(--space-2);
-  white-space: nowrap;
-  z-index: 9999;
-  pointer-events: none;
 }

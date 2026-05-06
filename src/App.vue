@@ -53,15 +53,6 @@
       @delete="requestDeletePad"
       @edit="openEditDialog"
     />
-    <!--
-      <div class="bottom">
-        <KeyboardExtended
-        :highlighted-notes="currentlyPlayingNoteNames"
-        :start-octave="1"
-        :octaves="7"
-        />
-      </div>
-    -->
     <EditDialog
       ref="editDialogRef"
       :pad-index="currentPadIndex"
@@ -93,15 +84,37 @@
       @close="onClosePadDeleteDialog"
     />
   </template>
-  <div v-if="showMidiWarningButton" class="warning">
-    <button class="button-warning" type="button" @click="openMidiDialog">
-      <OctagonAlert
+  <div class="toast warning" popover="manual" ref="midiWarningRef">
+    <button
+      class="button-warning"
+      type="button"
+      @click="
+        () => {
+          openMidiDialog();
+        }
+      "
+    >
+      <AlertTriangle
         aria-hidden="true"
         :stroke-width="1.5"
         :size="16"
         :absoluteStrokeWidth="true"
       />
       {{ midiWarningLabel }}
+    </button>
+    <button
+      class="popover-close"
+      type="button"
+      @click="closeMidiWarning"
+      aria-label="Close"
+    >
+      <X
+        aria-hidden="true"
+        :stroke-width="1.5"
+        :size="16"
+        :absoluteStrokeWidth="true"
+      />
+      <span class="sr-only">Close</span>
     </button>
   </div>
   <MidiDialog
@@ -132,13 +145,20 @@
     @close="onCloseChangelog"
     @dismiss="onDismissChangelog"
   />
-  <div v-if="toastMessage" class="toast" role="alert">{{ toastMessage }}</div>
+  <div class="toast" popover="manual" ref="toastRef">{{ toastMessage }}</div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import { Music2, BadgeInfo, OctagonAlert } from "lucide-vue-next";
+import {
+  Music2,
+  BadgeInfo,
+  InfoIcon,
+  AlertTriangle,
+  OctagonAlert,
+  X,
+} from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
 import { ArrowLeft } from "lucide-vue-next";
 
@@ -191,6 +211,7 @@ const Midi = [
 ];
 
 import KeyboardExtended from "./components/KeyboardExtended.vue";
+import Keyboard from "./components/Keyboard.vue";
 import PadGrid from "./components/PadGrid.vue";
 import EditDialog from "./components/EditDialog.vue";
 import MidiDialog from "./components/MidiDialog.vue";
@@ -265,6 +286,8 @@ const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
 const padDeleteDialogRef = ref(null);
+const midiWarningRef = ref(null);
+const toastRef = ref(null);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
@@ -614,6 +637,10 @@ onMounted(() => {
   }
 
   checkChangelog();
+
+  if (showMidiWarningButton.value) {
+    midiWarningRef.value?.showPopover();
+  }
 });
 
 onBeforeUnmount(() => {
@@ -641,6 +668,35 @@ const showMidiWarningButton = computed(() => {
   if (!midiEnabled.value) return true;
   return !hasMidiOutputs.value;
 });
+
+function closeMidiWarning() {
+  midiWarningRef.value?.hidePopover();
+}
+
+watch(
+  toastMessage,
+  (msg) => {
+    if (msg) {
+      toastRef.value?.showPopover();
+    } else {
+      toastRef.value?.hidePopover();
+    }
+  },
+  { flush: "post" },
+);
+
+// Drive show/hide via the warning condition
+watch(
+  showMidiWarningButton,
+  (visible) => {
+    if (visible) {
+      midiWarningRef.value?.showPopover();
+    } else {
+      midiWarningRef.value?.hidePopover();
+    }
+  },
+  { flush: "post" },
+);
 
 const midiWarningLabel = computed(() => {
   if (!midiSupported.value) return "Your browser does not support Web MIDI";
