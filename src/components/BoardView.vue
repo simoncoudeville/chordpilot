@@ -1,7 +1,7 @@
 <template>
   <div class="top detail-top">
     <button
-      class="icon-button back"
+      class="icon-button"
       type="button"
       @click="$emit('back')"
       aria-label="Back to boards"
@@ -15,7 +15,7 @@
     </button>
     <h2 class="board-title">{{ boardName }}</h2>
     <button
-      class="icon-button scale"
+      class="icon-button"
       type="button"
       @click="openGlobalKeyDialog"
       aria-label="Board scale settings"

@@ -1,7 +1,7 @@
 <template>
   <div class="view-shell">
-    <Transition :name="viewTransitionName">
-      <div v-if="showListView" key="list" class="view-panel">
+    <Transition :name="viewTransitionName" @after-enter="onViewAfterEnter">
+      <div v-if="showListView" key="list" class="view-panel" ref="listPanelRef">
         <BoardListView
           :boards="allBoards"
           :midi-supported="midiSupported"
@@ -242,6 +242,10 @@ const { toastMessage } = useToast();
 
 const showListView = ref(true);
 const viewTransitionName = ref("view-push-forward");
+const listPanelRef = ref(null);
+const savedListScroll = ref(0);
+const listScrollTargetRef = ref(null);
+const listScrollHandlerRef = ref(null);
 
 const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
@@ -490,6 +494,7 @@ function saveGlobalKey({ scale, type, enabled }) {
 
 // Board management handlers
 function onSelectBoard(boardId) {
+  savedListScroll.value = getListScrollTarget()?.scrollTop ?? 0;
   viewTransitionName.value = "view-push-forward";
   setActiveBoard(boardId);
   loadActiveBoardState();
@@ -499,6 +504,19 @@ function onSelectBoard(boardId) {
 function goBackToList() {
   viewTransitionName.value = "view-push-back";
   showListView.value = true;
+}
+
+function onViewAfterEnter() {
+  if (showListView.value) {
+    const target = getListScrollTarget();
+    if (target) target.scrollTop = savedListScroll.value;
+  }
+}
+
+function getListScrollTarget() {
+  const panel = listPanelRef.value;
+  if (!panel) return null;
+  return panel.querySelector(".board-list") || panel;
 }
 
 function onCreateBoard() {
@@ -717,6 +735,39 @@ watch(
   },
   { immediate: true },
 );
+
+watch(
+  listPanelRef,
+  () => {
+    if (listScrollTargetRef.value && listScrollHandlerRef.value) {
+      listScrollTargetRef.value.removeEventListener(
+        "scroll",
+        listScrollHandlerRef.value,
+      );
+    }
+
+    const target = getListScrollTarget();
+    listScrollTargetRef.value = target;
+    if (!target) return;
+
+    target.scrollTop = savedListScroll.value;
+    const onListScroll = () => {
+      savedListScroll.value = target.scrollTop;
+    };
+    listScrollHandlerRef.value = onListScroll;
+    target.addEventListener("scroll", onListScroll, { passive: true });
+  },
+  { flush: "post" },
+);
+
+onBeforeUnmount(() => {
+  if (listScrollTargetRef.value && listScrollHandlerRef.value) {
+    listScrollTargetRef.value.removeEventListener(
+      "scroll",
+      listScrollHandlerRef.value,
+    );
+  }
+});
 
 function saveEdit(snapshot) {
   try {

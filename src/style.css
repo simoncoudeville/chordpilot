@@ -78,7 +78,6 @@ html {
     "Source Code Pro", "Fira Mono", "Droid Sans Mono", "Consolas",
     "Courier New", monospace;
   font-size: calc(var(--font-size) / 16 * 100%);
-  /* font-size: 68.75%; */
   font-stretch: 80%;
   line-height: var(--computed-line-height);
   background-color: var(--color-layer-0);
@@ -86,61 +85,6 @@ html {
   /* font smoothing */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-#app {
-  min-height: 100svh;
-}
-
-.view-panel {
-  min-height: 100svh;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  position: relative;
-  isolation: isolate;
-}
-
-.view-push-forward-enter-active,
-.view-push-forward-leave-active,
-.view-push-back-enter-active,
-.view-push-back-leave-active {
-  transition:
-    transform 5s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 5s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, opacity;
-  position: absolute;
-  inset: 0;
-  background-color: var(--color-layer-0);
-}
-
-.view-push-forward-enter-active,
-.view-push-back-leave-active {
-  z-index: 2;
-}
-
-.view-push-forward-leave-active,
-.view-push-back-enter-active {
-  z-index: 1;
-}
-
-.view-push-forward-enter-from {
-  transform: translateX(100%);
-  opacity: 1;
-}
-
-.view-push-forward-leave-to {
-  transform: translateX(-25%);
-  opacity: 0.3;
-}
-
-.view-push-back-enter-from {
-  transform: translateX(-25%);
-  opacity: 0.3;
-}
-
-.view-push-back-leave-to {
-  transform: translateX(100%);
-  opacity: 1;
 }
 
 svg {
@@ -215,6 +159,63 @@ button {
   }
 }
 
+.view-shell {
+  position: relative;
+  overflow: hidden;
+  height: 100svh;
+}
+
+.view-panel {
+  height: 100%;
+  overflow-y: auto;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  isolation: isolate;
+}
+
+.view-push-forward-enter-active,
+.view-push-forward-leave-active,
+.view-push-back-enter-active,
+.view-push-back-leave-active {
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-layer-0);
+}
+
+.view-push-forward-enter-active,
+.view-push-back-leave-active {
+  z-index: 2;
+}
+
+.view-push-forward-leave-active,
+.view-push-back-enter-active {
+  z-index: 1;
+}
+
+.view-push-forward-enter-from {
+  transform: translateX(100%);
+  opacity: 1;
+}
+
+.view-push-forward-leave-to {
+  transform: translateX(-25%);
+  opacity: 0.3;
+}
+
+.view-push-back-enter-from {
+  transform: translateX(-25%);
+  opacity: 0.3;
+}
+
+.view-push-back-leave-to {
+  transform: translateX(100%);
+  opacity: 1;
+}
+
 .input {
   display: block;
   width: 100%;
@@ -272,6 +273,10 @@ button {
   color: var(--color-text-meta);
 }
 
+.icon-button--weak {
+  color: var(--color-text-weak);
+}
+
 .info-list {
   list-style: none;
   display: grid;
@@ -319,7 +324,7 @@ button {
 }
 
 .button-warning {
-  /* color: var(--color-warning); */
+  color: var(--color-warning);
   padding: var(--space-1-5) var(--space-2);
   display: flex;
   align-items: center;
@@ -774,10 +779,6 @@ dialog:open {
   margin: calc(var(--space-1) * -1);
 }
 
-.transpose-button {
-  /* Add .prevent-select class to this element in template */
-}
-
 .transpose-meta {
   display: flex;
   justify-content: space-between;
@@ -1078,4 +1079,8 @@ dialog:open {
   align-items: center;
   gap: var(--space-1-5);
   padding: var(--space-1-5) 0;
+}
+
+.lucide-ellipsis-vertical-icon {
+  fill: currentColor;
 }

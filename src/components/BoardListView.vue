@@ -3,7 +3,7 @@
     <h1>Chordboard</h1>
     <div class="top-buttons">
       <button
-        class="icon-button midi"
+        class="icon-button"
         type="button"
         @click="$emit('open-midi')"
         :disabled="!midiSupported"
@@ -46,7 +46,7 @@
         <p class="color-meta">{{ formatDate(board.createdAt) }}</p>
       </div>
       <button
-        class="icon-button icon-button--meta"
+        class="icon-button"
         type="button"
         @click.stop="openBoardMenu(board.id)"
         aria-label="Board options"
