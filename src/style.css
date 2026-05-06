@@ -540,7 +540,7 @@ dialog:open {
   text-box-trim: trim-both;
   border: none;
   background-color: var(--color-layer-2);
-  /* color: var(--color-text-weak); */
+  color: var(--color-text-weak);
   border-radius: 4px;
   text-align: left;
   text-transform: none;
