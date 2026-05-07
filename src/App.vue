@@ -913,7 +913,26 @@ function resolvePadMusicData(pad) {
     notes = sortByMidi(afterVoicing);
   }
 
-  const resolved = { symbol, notes };
+  const labelHtml = symbol
+    ? formatChordSymbol(
+        symbol,
+        preferredGlobalScaleRoot.value,
+        globalScaleType.value,
+      )
+    : "UNASSIGNED";
+  const noteLabel = notes.length
+    ? notes
+        .map((note) =>
+          formatNoteName(
+            simplifyNoteName(note),
+            preferredGlobalScaleRoot.value,
+            globalScaleType.value,
+          ),
+        )
+        .join(" ")
+    : "";
+
+  const resolved = { symbol, notes, labelHtml, noteLabel };
   padMusicCache.set(cacheKey, resolved);
   if (padMusicCache.size > PAD_MUSIC_CACHE_MAX) {
     padMusicCache.clear();
@@ -943,27 +962,11 @@ function padNotes(pad) {
 }
 
 function padButtonLabelHtml(pad) {
-  const s = padChordSymbol(pad);
-  if (!s) return "UNASSIGNED";
-  return formatChordSymbol(
-    s,
-    preferredGlobalScaleRoot.value,
-    globalScaleType.value,
-  );
+  return resolvePadMusicData(pad).labelHtml;
 }
 
 function padNoteLabel(pad) {
-  const notes = padNotes(pad);
-  if (!notes.length) return "";
-  return notes
-    .map((note) =>
-      formatNoteName(
-        simplifyNoteName(note),
-        preferredGlobalScaleRoot.value,
-        globalScaleType.value,
-      ),
-    )
-    .join(" ");
+  return resolvePadMusicData(pad).noteLabel;
 }
 
 import { reactive } from "vue";
