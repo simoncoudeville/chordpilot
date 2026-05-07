@@ -117,6 +117,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { WebMidi } from "webmidi";
 import { AlertTriangle, X } from "lucide-vue-next";
 
@@ -178,7 +179,10 @@ const {
 
 const { toastMessage } = useToast();
 
-const showListView = ref(true);
+const router = useRouter();
+const route = useRoute();
+
+const showListView = computed(() => route.name !== "board");
 const viewTransitionName = ref("view-push-forward");
 const listPanelRef = ref(null);
 const savedListScroll = ref(0);
@@ -425,15 +429,11 @@ function saveGlobalKey({ scale, type, enabled }) {
 // Board management handlers
 function onSelectBoard(boardId) {
   savedListScroll.value = getListScrollTarget()?.scrollTop ?? 0;
-  viewTransitionName.value = "view-push-forward";
-  setActiveBoard(boardId);
-  loadActiveBoardState();
-  showListView.value = false;
+  router.push({ name: "board", params: { boardId } });
 }
 
 function goBackToList() {
-  viewTransitionName.value = "view-push-back";
-  showListView.value = true;
+  router.push({ name: "list" });
 }
 
 function onViewAfterEnter() {
@@ -464,10 +464,52 @@ function onDuplicateBoard(boardId) {
 
 function onDeleteBoard(boardId) {
   deleteBoard(boardId);
+
+  if (
+    route.name === "board" &&
+    String(route.params.boardId) === String(boardId)
+  ) {
+    if (!allBoards.value.length) {
+      router.replace({ name: "list" });
+      return;
+    }
+    const fallbackId = activeBoard.value?.id || allBoards.value[0]?.id;
+    if (fallbackId) {
+      router.replace({ name: "board", params: { boardId: fallbackId } });
+      return;
+    }
+  }
+
   // If we deleted the active board and there are still boards left
   if (activeBoard.value) {
     loadActiveBoardState();
   }
+}
+
+function syncBoardFromRoute() {
+  if (route.name !== "board") return;
+
+  const routeBoardId = String(route.params.boardId ?? "");
+  if (!routeBoardId) {
+    router.replace({ name: "list" });
+    return;
+  }
+
+  const ids = (allBoards.value || []).map((b) => String(b.id));
+  if (!ids.includes(routeBoardId)) {
+    if (!ids.length) {
+      router.replace({ name: "list" });
+      return;
+    }
+    const fallbackId = String(activeBoard.value?.id || ids[0]);
+    router.replace({ name: "board", params: { boardId: fallbackId } });
+    return;
+  }
+
+  if (String(activeBoard.value?.id ?? "") !== routeBoardId) {
+    setActiveBoard(routeBoardId);
+  }
+  loadActiveBoardState();
 }
 
 function onRenameBoard(boardId, newName) {
@@ -552,6 +594,7 @@ onMounted(() => {
 
   // Load boards (handles migration from legacy format)
   loadBoards();
+  syncBoardFromRoute();
 
   checkChangelog();
 
@@ -559,6 +602,26 @@ onMounted(() => {
     midiWarningRef.value?.showPopover();
   }
 });
+
+watch(
+  () => route.name,
+  (to, from) => {
+    if (to === from) return;
+    if (from === "list" && to === "board") {
+      viewTransitionName.value = "view-push-forward";
+    } else if (from === "board" && to === "list") {
+      viewTransitionName.value = "view-push-back";
+    }
+  },
+);
+
+watch(
+  () => [route.name, route.params.boardId, allBoards.value.length],
+  () => {
+    syncBoardFromRoute();
+  },
+  { flush: "post" },
+);
 
 onBeforeUnmount(() => {
   disconnectMidi();
