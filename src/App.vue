@@ -19,6 +19,7 @@
           ref="boardViewRef"
           :board-name="activeBoard?.name"
           :pads="pads"
+          :highlighted-notes="currentlyPlayingNoteNames"
           :pad-index="currentPadIndex"
           :permission-allowed="permissionAllowed"
           :midi-enabled="midiEnabled"
@@ -175,8 +176,6 @@ const Midi = [
   ],
 ];
 
-import KeyboardExtended from "./components/KeyboardExtended.vue";
-import Keyboard from "./components/Keyboard.vue";
 import BoardView from "./components/BoardView.vue";
 import PadGrid from "./components/PadGrid.vue";
 import EditDialog from "./components/EditDialog.vue";
@@ -605,6 +604,7 @@ function clearVisualDisplay() {
 }
 
 const PAD_COUNT = 12;
+const DEFAULT_ATTACK = 0.75;
 
 const pads = ref(Array.from({ length: PAD_COUNT }, createDefaultPad));
 function savePads() {
@@ -1055,7 +1055,7 @@ function onStartPad(idx, e, coords) {
     if (!ch) return;
 
     // Calculate start parameters
-    let baseVelocity = 0.75;
+    let baseVelocity = DEFAULT_ATTACK;
     let strumDuration = 0;
     let humanizeAmount = 0;
     let tiltAmount = 0;
@@ -1274,12 +1274,12 @@ function onPreviewStart(payload) {
     if (!ch) return;
     activePreviewNotes.value = notes.slice();
     try {
-      ch.playNote(notes);
+      ch.playNote(notes, { attack: DEFAULT_ATTACK });
     } catch (e) {
       console.warn("Batch playNote failed, retrying individually:", e);
       for (const n of notes) {
         try {
-          ch.playNote(n);
+          ch.playNote(n, { attack: DEFAULT_ATTACK });
         } catch {}
       }
     }

@@ -481,6 +481,11 @@ dialog:open {
   gap: var(--space-1-5);
   /* padding: var(--space-1-5); */
   padding: 0 2px 2px;
+  overflow: hidden;
+
+  /* .keyboard-wrapper {
+    border-radius: var(--radius) var(--radius) 0 0;
+  } */
 }
 
 .detail-top {
@@ -631,6 +636,7 @@ dialog:open {
   position: absolute;
   top: 0;
   background: var(--color-layer-3);
+  transition: background-color 0.15s ease;
 }
 
 .key-played {

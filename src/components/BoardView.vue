@@ -40,6 +40,10 @@
     @delete="(idx) => $emit('delete', idx)"
     @edit="(idx) => $emit('edit', idx)"
   />
+  <div class="bottom">
+    <KeyboardExtended :highlighted-notes="highlightedNotes" />
+  </div>
+
   <EditDialog
     ref="editDialogRef"
     :pad-index="padIndex"
@@ -75,6 +79,7 @@
 <script setup>
 import { ref } from "vue";
 import { ArrowLeft, Music2 } from "lucide-vue-next";
+import KeyboardExtended from "./KeyboardExtended.vue";
 import PadGrid from "./PadGrid.vue";
 import EditDialog from "./EditDialog.vue";
 import GlobalKeyDialog from "./GlobalKeyDialog.vue";
@@ -83,6 +88,10 @@ import PadDeleteDialog from "./PadDeleteDialog.vue";
 const props = defineProps({
   boardName: String,
   pads: Array,
+  highlightedNotes: {
+    type: Array,
+    default: () => [],
+  },
   padIndex: Number,
   permissionAllowed: Boolean,
   midiEnabled: Boolean,
