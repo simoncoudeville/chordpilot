@@ -227,7 +227,7 @@
       <div class="dialog-buttons">
         <button class="button" type="button" @click="onClose">Cancel</button>
         <button
-          class="button primary"
+          class="button button-primary"
           type="button"
           @click="$emit('save', buildPadSnapshot())"
           :disabled="!isDirty"
@@ -261,9 +261,9 @@ import {
   buildChordDefinition,
   chordNoteCount,
 } from "../utils/chordSystem";
+import { qualityForScaleDegree } from "../utils/scaleHarmony";
 
 // Keep padIndex so the title continues to work; expose open/close for parent
-const iconStrokeWidth = Number(globalThis?.APP_ICON_STROKE_WIDTH ?? 1.5);
 const props = defineProps({
   padIndex: { type: Number, default: 0 },
   // Receive current global scale from parent (App.vue)
@@ -365,37 +365,14 @@ const scaleNotes = computed(() => {
   return Array.isArray(notes) ? notes : [];
 });
 
-// Helper to detect simple triad quality for a degree: "", "m", "dim", "aug"
-function semitoneDistance(pcFrom, pcTo) {
-  const base = Note.midi(`${pcFrom}4`) ?? 60;
-  let target = Note.midi(`${pcTo}4`) ?? base;
-  while (target < base) target += 12;
-  return (target - base) % 12;
-}
-function qualityFromTriad(triad, rootPc) {
-  const [r, t, f] = triad;
-  if (!r || !t || !f) return "";
-  const third = semitoneDistance(rootPc, t);
-  const fifth = semitoneDistance(rootPc, f);
-  if (third === 3 && fifth === 6) return "dim";
-  if (third === 4 && fifth === 8) return "aug";
-  if (third === 3 && fifth === 7) return "m";
-  if (third === 4 && fifth === 7) return ""; // major
-  return "";
-}
-
 function qualityForDegree(index) {
-  const s = scaleNotes.value;
-  if (!Array.isArray(s) || s.length < 3) return "";
-  const i = index % s.length;
-  const triad = [s[i], s[(i + 2) % s.length], s[(i + 4) % s.length]];
-  return qualityFromTriad(triad, s[i]);
+  return qualityForScaleDegree(scaleNotes.value, index);
 }
 
 // Populate degree selector with chord symbols: C, Dm, Em, F, G, Am, Bdim, etc.
 // Use dynamic Roman numerals based on scale type
 const currentRomanNumerals = computed(() =>
-  getRomanNumeralsForScale(props.globalScaleType)
+  getRomanNumeralsForScale(props.globalScaleType),
 );
 
 const ROMAN_TO_NUMERIC = computed(() =>
@@ -405,7 +382,7 @@ const ROMAN_TO_NUMERIC = computed(() =>
     acc[cleanRoman] = String(idx + 1);
     acc[roman] = String(idx + 1);
     return acc;
-  }, {})
+  }, {}),
 );
 
 function normalizeDegree(value) {
@@ -436,7 +413,7 @@ const editChordOptions = computed(() =>
     const rootDisplay = formatNoteName(
       n,
       props.globalScaleRoot,
-      props.globalScaleType
+      props.globalScaleType,
     );
     const chordName = `${rootDisplay}${suffix}`;
     const romanDisplay = currentRomanNumerals.value[i] || String(i + 1);
@@ -446,7 +423,7 @@ const editChordOptions = computed(() =>
       roman: romanDisplay,
       display,
     };
-  })
+  }),
 );
 // Root options for Free mode, generated via Tonal.
 // Display both sharp and flat names for black keys.
@@ -464,16 +441,15 @@ const ROOT_PCS_SHARP = [
   "A#",
   "B",
 ];
-const rootOptions = computed(() => {
-  return ROOT_PCS_SHARP.map((pc) => {
-    if (pc.includes("#")) {
-      const flat = Note.enharmonic(pc);
-      // Display both: "C#/Db"
-      return { value: flat, label: `${pc}/${flat}` };
-    }
-    return { value: pc, label: pc };
-  });
+const ROOT_OPTIONS = ROOT_PCS_SHARP.map((pc) => {
+  if (pc.includes("#")) {
+    const flat = Note.enharmonic(pc);
+    // Display both: "C#/Db"
+    return { value: flat, label: `${pc}/${flat}` };
+  }
+  return { value: pc, label: pc };
 });
+const rootOptions = ROOT_OPTIONS;
 const FREE_TYPE_OPTIONS = Object.freeze([
   { value: "major", label: "Major" },
   { value: "minor", label: "Minor" },
@@ -506,15 +482,15 @@ function allowedExtensionsForFreeType(baseType) {
 const scaleChordType = computed(() => determineScaleChordType());
 const freeChordType = computed(() => normalizeFreeTypeValue(stateFree.type));
 const scaleExtensionOptions = computed(() =>
-  extensionOptionsForType(scaleChordType.value)
+  extensionOptionsForType(scaleChordType.value),
 );
 const freeExtensionOptions = computed(() =>
-  allowedExtensionsForFreeType(stateFree.type)
+  allowedExtensionsForFreeType(stateFree.type),
 );
 const extensionOptions = computed(() =>
   model.value.mode === "scale"
     ? scaleExtensionOptions.value
-    : freeExtensionOptions.value
+    : freeExtensionOptions.value,
 );
 
 function computeValidInversions(ext, chordType, rootPc) {
@@ -529,20 +505,20 @@ const validInversionsScale = computed(() =>
   computeValidInversions(
     stateScale.extension,
     scaleChordType.value,
-    scaleChordRootPc.value
-  )
+    scaleChordRootPc.value,
+  ),
 );
 const validInversionsFree = computed(() =>
   computeValidInversions(
     stateFree.extension,
     freeChordType.value,
-    freeChordRootPc.value
-  )
+    freeChordRootPc.value,
+  ),
 );
 const currentValidInversions = computed(() =>
   model.value.mode === "scale"
     ? validInversionsScale.value
-    : validInversionsFree.value
+    : validInversionsFree.value,
 );
 
 const EXPRESSION_OPTIONS = [
@@ -556,14 +532,14 @@ const EXPRESSION_OPTIONS = [
 
 const xOptions = computed(() =>
   EXPRESSION_OPTIONS.filter(
-    (o) => o.value === "none" || o.value !== stateSettings.y
-  )
+    (o) => o.value === "none" || o.value !== stateSettings.y,
+  ),
 );
 
 const yOptions = computed(() =>
   EXPRESSION_OPTIONS.filter(
-    (o) => o.value === "none" || o.value !== stateSettings.x
-  )
+    (o) => o.value === "none" || o.value !== stateSettings.x,
+  ),
 );
 
 // All possible inversions for combination building
@@ -656,7 +632,7 @@ function buildTransposeMeta(mode) {
   }
 
   let defaultIndex = combos.findIndex(
-    (c) => c.octave === DEFAULT_ROOT_OCTAVE && c.inversion === "root"
+    (c) => c.octave === DEFAULT_ROOT_OCTAVE && c.inversion === "root",
   );
   // If exact default isn't valid, pick middle
   if (defaultIndex === -1) {
@@ -671,30 +647,30 @@ const transposeMetaFree = computed(() => buildTransposeMeta("free"));
 const currentTransposeMeta = computed(() =>
   model.value.mode === "scale"
     ? transposeMetaScale.value
-    : transposeMetaFree.value
+    : transposeMetaFree.value,
 );
 
 const transposeSliderMin = computed(
-  () => -currentTransposeMeta.value.defaultIndex
+  () => -currentTransposeMeta.value.defaultIndex,
 );
 const transposeSliderMax = computed(
   () =>
     currentTransposeMeta.value.combos.length -
     1 -
-    currentTransposeMeta.value.defaultIndex
+    currentTransposeMeta.value.defaultIndex,
 );
 const transposeSliderDisabled = computed(
-  () => transposeSliderMin.value === transposeSliderMax.value
+  () => transposeSliderMin.value === transposeSliderMax.value,
 );
 const canTransposeDown = computed(
   () =>
     !transposeSliderDisabled.value &&
-    currentTranspose.value > transposeSliderMin.value
+    currentTranspose.value > transposeSliderMin.value,
 );
 const canTransposeUp = computed(
   () =>
     !transposeSliderDisabled.value &&
-    currentTranspose.value < transposeSliderMax.value
+    currentTranspose.value < transposeSliderMax.value,
 );
 
 const currentTranspose = computed({
@@ -703,7 +679,7 @@ const currentTranspose = computed({
     if (!combos.length) return 0;
     const state = model.value.mode === "scale" ? stateScale : stateFree;
     const idx = combos.findIndex(
-      (c) => c.octave === state.octave && c.inversion === state.inversion
+      (c) => c.octave === state.octave && c.inversion === state.inversion,
     );
 
     // If current state is not found (invalid), find the closest one to avoid jumping
@@ -732,11 +708,11 @@ const currentTranspose = computed({
     const value = Number.isFinite(raw) ? Math.trunc(raw) : 0;
     const clampedOffset = Math.max(
       transposeSliderMin.value,
-      Math.min(transposeSliderMax.value, value)
+      Math.min(transposeSliderMax.value, value),
     );
     const targetIndex = Math.max(
       0,
-      Math.min(combos.length - 1, defaultIndex + clampedOffset)
+      Math.min(combos.length - 1, defaultIndex + clampedOffset),
     );
     const combo = combos[targetIndex];
     state.octave = combo.octave;
@@ -815,7 +791,7 @@ onBeforeUnmount(() => {
 
 watch(
   () => model.value.mode,
-  () => stopTransposeHold()
+  () => stopTransposeHold(),
 );
 
 function applyLegacyTransposeToState(mode, steps) {
@@ -827,7 +803,7 @@ function applyLegacyTransposeToState(mode, steps) {
   if (!combos.length) return;
   const state = mode === "scale" ? stateScale : stateFree;
   const idx = combos.findIndex(
-    (c) => c.octave === state.octave && c.inversion === state.inversion
+    (c) => c.octave === state.octave && c.inversion === state.inversion,
   );
   const startIndex = idx === -1 ? meta.defaultIndex : idx;
   let targetIndex = startIndex + offset;
@@ -845,10 +821,7 @@ const baseQualityFromScale = computed(() => {
   const s = scaleNotes.value;
   if (!Array.isArray(s) || s.length < 3) return "";
   const deg = degreeNumber(stateScale.degree);
-  const i = (deg - 1) % s.length;
-  // Stack diatonic thirds within the scale
-  const triad = [s[i], s[(i + 2) % s.length], s[(i + 4) % s.length]];
-  return qualityFromTriad(triad, s[i]);
+  return qualityForScaleDegree(s, deg - 1);
 });
 
 // Compute chord roots for each mode
@@ -859,7 +832,7 @@ const scaleChordRootPc = computed(() => {
 });
 const freeChordRootPc = computed(() => stateFree.root || "C");
 const chordRootPc = computed(() =>
-  model.value.mode === "scale" ? scaleChordRootPc.value : freeChordRootPc.value
+  model.value.mode === "scale" ? scaleChordRootPc.value : freeChordRootPc.value,
 );
 
 function determineScaleChordType() {
@@ -879,87 +852,6 @@ function determineScaleChordType() {
 function extensionNoteCount(ext, chordType, rootPc) {
   const info = getChordPitchClasses(rootPc || "C", chordType, ext);
   return Array.isArray(info.pcs) ? info.pcs.length : 0;
-}
-
-function buildChordRepresentation(rootPc, chordType, ext) {
-  const baseType = normalizeFreeTypeValue(chordType);
-  const value = normalizeExtensionValue(ext);
-  const create = (display, tonal = display) => ({ display, tonal });
-
-  switch (baseType) {
-    case "major":
-      switch (value) {
-        case "none":
-          return create(`${rootPc}`);
-        case "6":
-          return create(`${rootPc}6`);
-        case "maj7":
-          return create(`${rootPc}maj7`);
-        case "maj9":
-          return create(`${rootPc}maj9`);
-        case "add9":
-          return create(`${rootPc}add9`);
-        case "7":
-          return create(`${rootPc}7`);
-        case "9":
-          return create(`${rootPc}9`);
-        case "13":
-          return create(`${rootPc}13`);
-        default:
-          return create(`${rootPc}`);
-      }
-    case "minor":
-      switch (value) {
-        case "none":
-          return create(`${rootPc}m`);
-        case "6":
-          return create(`${rootPc}m6`);
-        case "7":
-          return create(`${rootPc}m7`);
-        case "9":
-          return create(`${rootPc}m9`);
-        case "11":
-          return create(`${rootPc}m11`);
-        case "13":
-          return create(`${rootPc}m13`);
-        case "add9":
-          return create(`${rootPc}madd9`);
-        default:
-          return create(`${rootPc}m`);
-      }
-    case "diminished":
-      switch (value) {
-        case "none":
-          return create(`${rootPc}dim`);
-        case "7":
-          return create(`${rootPc}dim7`);
-        default:
-          return create(`${rootPc}dim`);
-      }
-    case "halfDiminished":
-      return create(`${rootPc}m7b5`);
-    case "augmented":
-      switch (value) {
-        case "none":
-          return create(`${rootPc}aug`);
-        case "maj7":
-          return create(`${rootPc}maj7#5`);
-        case "9":
-          return create(`${rootPc}9#5`);
-        default:
-          return create(`${rootPc}aug`);
-      }
-    case "sus2":
-      if (value === "add9") return create(`${rootPc}sus2add9`, `${rootPc}sus2`);
-      return create(`${rootPc}sus2`);
-    case "sus4":
-      if (value === "add9") return create(`${rootPc}sus4add9`, `${rootPc}sus4`);
-      return create(`${rootPc}sus4`);
-    case "power":
-      return create(`${rootPc}5`);
-    default:
-      return create(`${rootPc}`);
-  }
 }
 
 function getChordPitchClasses(rootPc, chordType, ext) {
@@ -1103,30 +995,30 @@ const previewNotesAsc = computed(() => {
     pcs,
     model.value.mode === "scale" ? stateScale.octave : stateFree.octave,
     model.value.mode === "scale" ? stateScale.inversion : stateFree.inversion,
-    currentVoicing.value
+    currentVoicing.value,
   );
   // Convert back to note names for preview logic
   return noteList.map((m) => Note.fromMidi(m));
 });
 
 const previewNotesPlayable = computed(() =>
-  (previewNotesAsc.value || []).map((n) => simplifyNoteName(n))
+  (previewNotesAsc.value || []).map((n) => simplifyNoteName(n)),
 );
 
 const hasChordForPreview = computed(
-  () => (previewNotesPlayable.value?.length ?? 0) > 0
+  () => (previewNotesPlayable.value?.length ?? 0) > 0,
 );
 const previewChordHtml = computed(() =>
   formatChordSymbol(
     previewChordData.value.symbol,
     props.globalScaleRoot,
-    props.globalScaleType
-  )
+    props.globalScaleType,
+  ),
 );
 const previewNotesHtml = computed(() => {
   const notes = previewNotesPlayable.value || [];
   const formatted = notes.map((n) =>
-    formatNoteName(n, props.globalScaleRoot, props.globalScaleType)
+    formatNoteName(n, props.globalScaleRoot, props.globalScaleType),
   );
   return formatted.join(" ");
 });
@@ -1171,7 +1063,7 @@ function resetToDefaults() {
   stateScale.degree = firstDegree;
   stateScale.octave = DEFAULT_ROOT_OCTAVE;
   const defaultScaleExt = normalizeExtensionValue(
-    extensionOptionsForType(determineScaleChordType())[0] ?? DEFAULT_EXTENSION
+    extensionOptionsForType(determineScaleChordType())[0] ?? DEFAULT_EXTENSION,
   );
   stateScale.extension = defaultScaleExt;
   stateScale.inversion = "root";
@@ -1181,7 +1073,7 @@ function resetToDefaults() {
   stateFree.type = "major";
   stateFree.octave = DEFAULT_ROOT_OCTAVE;
   const defaultFreeExt = normalizeExtensionValue(
-    allowedExtensionsForFreeType(stateFree.type)[0] ?? DEFAULT_EXTENSION
+    allowedExtensionsForFreeType(stateFree.type)[0] ?? DEFAULT_EXTENSION,
   );
   stateFree.extension = defaultFreeExt;
   stateFree.inversion = "root";
@@ -1200,7 +1092,7 @@ watch(
   () => {
     resetToDefaults();
   },
-  { immediate: false }
+  { immediate: false },
 );
 
 watch(
@@ -1209,7 +1101,7 @@ watch(
     if (isApplyingPadState.value) return;
     if (oldExt != null) previousScaleExtension.value = oldExt;
   },
-  { flush: "sync" }
+  { flush: "sync" },
 );
 
 watch(
@@ -1218,7 +1110,7 @@ watch(
     if (isApplyingPadState.value) return;
     if (oldExt != null) previousFreeExtension.value = oldExt;
   },
-  { flush: "sync" }
+  { flush: "sync" },
 );
 
 watch(
@@ -1230,10 +1122,10 @@ watch(
     if (!opts.includes(normalizedCurrent)) {
       previousScaleExtension.value = stateScale.extension;
       stateScale.extension = normalizeExtensionValue(
-        opts[0] ?? DEFAULT_EXTENSION
+        opts[0] ?? DEFAULT_EXTENSION,
       );
     }
-  }
+  },
 );
 
 watch(
@@ -1253,10 +1145,10 @@ watch(
     ) {
       previousFreeExtension.value = stateFree.extension;
       stateFree.extension = normalizeExtensionValue(
-        preferred ?? DEFAULT_EXTENSION
+        preferred ?? DEFAULT_EXTENSION,
       );
     }
-  }
+  },
 );
 
 // When extension changes, clamp inversion to valid range and reset voicing
@@ -1279,7 +1171,7 @@ watch(
     } else {
       stateFree.voicing = "close";
     }
-  }
+  },
 );
 
 // When degree changes, reset scale-mode defaults
@@ -1297,7 +1189,7 @@ watch(
     stateScale.inversion = "root";
     stateScale.voicing = "close";
     stateScale.octave = DEFAULT_ROOT_OCTAVE;
-  }
+  },
 );
 
 // Auto-correct state if parameters change such that current notes become invalid
@@ -1313,7 +1205,7 @@ watch(
     if (isApplyingPadState.value) return;
     validateAndCorrectState();
   },
-  { flush: "post" } // Run after other updates have settled
+  { flush: "post" }, // Run after other updates have settled
 );
 
 function validateAndCorrectState() {
@@ -1326,7 +1218,7 @@ function validateAndCorrectState() {
 
   // Check if current state is valid (present in combos)
   const isValid = combos.some(
-    (c) => c.octave === state.octave && c.inversion === state.inversion
+    (c) => c.octave === state.octave && c.inversion === state.inversion,
   );
 
   if (!isValid) {
@@ -1362,7 +1254,7 @@ watch(
     const normalizedCurrent = normalizeExtensionValue(stateFree.extension);
     const nextExtension = options.includes(DEFAULT_EXTENSION)
       ? DEFAULT_EXTENSION
-      : options[0] ?? DEFAULT_EXTENSION;
+      : (options[0] ?? DEFAULT_EXTENSION);
     const shouldReset =
       !options.includes(normalizedCurrent) ||
       (nextExtension === DEFAULT_EXTENSION &&
@@ -1374,7 +1266,7 @@ watch(
     // stateFree.inversion = "root"; // Removed aggressive reset to rely on auto-correction logic if desirable
     stateFree.voicing = "close";
     // stateFree.octave = DEFAULT_ROOT_OCTAVE; // Removed aggressive reset
-  }
+  },
 );
 
 watch(
@@ -1388,7 +1280,7 @@ watch(
     }
     stateScale.degree = opts[0].degree;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 defineExpose({ open, close, dlg, resetToDefaults });
@@ -1488,7 +1380,7 @@ function applyPadState(s) {
 watch(
   () => props.padState,
   (s) => applyPadState(s),
-  { immediate: true, deep: false }
+  { immediate: true, deep: false },
 );
 
 // Internal dirtiness check: compare current selections with incoming padState

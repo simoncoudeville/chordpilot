@@ -11,6 +11,23 @@ const { showToast } = useToast();
 const BOARDS_KEY = "chordboard:boards";
 const ACTIVE_BOARD_KEY = "chordboard:active-board-id";
 
+function generateBoardId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return `board-${crypto.randomUUID()}`;
+  }
+  return `board-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function deepClone(value) {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
 // Reactive state
 const boards = ref([]);
 const activeBoardId = ref(null);
@@ -28,7 +45,10 @@ export function useBoards() {
         boards.value = JSON.parse(stored);
         // Restore which board was active
         const storedActiveId = localStorage.getItem(ACTIVE_BOARD_KEY);
-        if (storedActiveId && boards.value.some((b) => b.id === storedActiveId)) {
+        if (
+          storedActiveId &&
+          boards.value.some((b) => b.id === storedActiveId)
+        ) {
           activeBoardId.value = storedActiveId;
         } else if (boards.value.length > 0) {
           activeBoardId.value = boards.value[0].id;
@@ -65,6 +85,8 @@ export function useBoards() {
     try {
       if (activeBoardId.value) {
         localStorage.setItem(ACTIVE_BOARD_KEY, activeBoardId.value);
+      } else {
+        localStorage.removeItem(ACTIVE_BOARD_KEY);
       }
     } catch (error) {
       console.error("Failed to save active board ID:", error);
@@ -91,7 +113,7 @@ export function useBoards() {
   const createBoard = (name = "New Board") => {
     const now = Date.now();
     const newBoard = {
-      id: `board-${now}`,
+      id: generateBoardId(),
       name,
       pads: Array.from({ length: 12 }, () => createDefaultPad()),
       scale: {
@@ -116,6 +138,9 @@ export function useBoards() {
       // If deleted board was active, switch to first remaining board
       if (activeBoardId.value === boardId && boards.value.length > 0) {
         setActiveBoard(boards.value[0].id);
+      } else if (boards.value.length === 0) {
+        activeBoardId.value = null;
+        saveActiveBoardId();
       }
     }
   };
@@ -135,10 +160,10 @@ export function useBoards() {
 
     const now = Date.now();
     const duplicated = {
-      id: `board-${now}`,
+      id: generateBoardId(),
       name: `${original.name} (copy)`,
-      pads: JSON.parse(JSON.stringify(original.pads)), // Deep copy
-      scale: JSON.parse(JSON.stringify(original.scale)), // Deep copy
+      pads: deepClone(original.pads),
+      scale: deepClone(original.scale),
       createdAt: now,
       updatedAt: now,
     };

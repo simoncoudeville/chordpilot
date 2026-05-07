@@ -55,8 +55,8 @@ const TYPE_ALIAS_MAP = Object.freeze(
       ["sus4", "sus4"],
       ["power", "power"],
       ["power (5)", "power"],
-    ].concat(CHORD_TYPES.map((type) => [type, type]))
-  )
+    ].concat(CHORD_TYPES.map((type) => [type, type])),
+  ),
 );
 
 const NON_TERTIAN_TYPES = new Set(["sus2", "sus4", "power"]);
@@ -162,8 +162,6 @@ function buildMajorChordSymbols(root, extension) {
       return { display: `${root}7`, tonal: `${root}7` };
     case "9":
       return { display: `${root}9`, tonal: `${root}9` };
-    case "13":
-      return { display: `${root}13`, tonal: `${root}13` };
     case "13":
       return { display: `${root}13`, tonal: `${root}13` };
     case "6/9":

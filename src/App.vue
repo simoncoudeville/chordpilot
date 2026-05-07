@@ -1,57 +1,23 @@
 <template>
   <div class="view-shell">
-    <Transition :name="viewTransitionName" @after-enter="onViewAfterEnter">
-      <div v-if="showListView" key="list" class="view-panel" ref="listPanelRef">
-        <BoardListView
-          :boards="allBoards"
-          :midi-supported="midiSupported"
-          @select-board="onSelectBoard"
-          @create-board="onCreateBoard"
-          @duplicate-board="onDuplicateBoard"
-          @delete-board="onDeleteBoard"
-          @rename-board="onRenameBoard"
-          @open-info="openInfoDialog"
-          @open-midi="openMidiDialog"
-        />
-      </div>
-      <div v-else key="detail" class="view-panel">
-        <BoardView
-          ref="boardViewRef"
-          :board-name="activeBoard?.name"
-          :pads="pads"
-          :highlighted-notes="currentlyPlayingNoteNames"
-          :note-velocity-map="noteVelocityMap"
-          :pad-index="currentPadIndex"
-          :permission-allowed="permissionAllowed"
-          :midi-enabled="midiEnabled"
-          :pad-button-label-html="padButtonLabelHtml"
-          :pad-note-label="padNoteLabel"
-          :global-scale="globalScale"
-          :global-scale-root="preferredGlobalScaleRoot"
-          :global-scale-display="globalScaleDisplayName"
-          :global-scale-type="globalScaleType"
-          :global-scale-enabled="globalScaleEnabled"
-          :scale-pad-count="scaleModePadCount"
-          @back="goBackToList"
-          @start-pad="onStartPad"
-          @stop-pad="onStopPad"
-          @update-pad="onUpdatePad"
-          @delete="requestDeletePad"
-          @edit="openEditDialog"
-          @preview-start="onPreviewStart"
-          @preview-stop="onPreviewStop"
-          @save-edit="saveEdit"
-          @close-edit="closeEdit"
-          @close-global-key="onCloseGlobalKey"
-          @save-global-key="saveGlobalKey"
-          @confirm-delete="confirmDeletePad"
-          @cancel-delete="cancelDeletePad"
-          @close-delete="onClosePadDeleteDialog"
-        />
-      </div>
-    </Transition>
+    <RouterView v-slot="{ Component, route: currentRoute }">
+      <Transition :name="viewTransitionName" @after-enter="onViewAfterEnter">
+        <div
+          class="view-panel"
+          :key="currentRoute.name"
+          :ref="(el) => setListPanelRef(el, currentRoute.name)"
+        >
+          <component
+            :is="Component"
+            ref="routeViewRef"
+            v-bind="routeViewProps"
+            v-on="routeViewListeners"
+          />
+        </div>
+      </Transition>
+    </RouterView>
   </div>
-  <div class="toast warning" popover="manual" ref="midiWarningRef">
+  <div class="toast" popover="manual" ref="midiWarningRef">
     <button
       class="button-warning"
       type="button"
@@ -117,75 +83,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
+import { RouterView, useRoute, useRouter } from "vue-router";
 import { WebMidi } from "webmidi";
-import {
-  Music2,
-  BadgeInfo,
-  InfoIcon,
-  AlertTriangle,
-  OctagonAlert,
-  X,
-} from "lucide-vue-next";
-import { Icon } from "lucide-vue-next";
-import { ArrowLeft } from "lucide-vue-next";
+import { AlertTriangle, X } from "lucide-vue-next";
 
-// Icon data for custom Midi icon
-const Midi = [
-  [
-    "path",
-    {
-      d: "M12 18h.01",
-      key: "mhygvu",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M16.24 16.24h.01",
-      key: "1x84wr",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M18 12h.01",
-      key: "yjnet6",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M6 12h.01",
-      key: "c2rlol",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M7.76 16.24h.01",
-      key: "11ncrc",
-    },
-  ],
-  [
-    "circle",
-    {
-      cx: "12",
-      cy: "12",
-      r: "10",
-      key: "1mglay",
-    },
-  ],
-];
-
-import BoardView from "./components/BoardView.vue";
-import PadGrid from "./components/PadGrid.vue";
-import EditDialog from "./components/EditDialog.vue";
 import MidiDialog from "./components/MidiDialog.vue";
-import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
-import PadDeleteDialog from "./components/PadDeleteDialog.vue";
-import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
 import { useBoards } from "./composables/useBoards";
 import { useToast } from "./composables/useToast";
@@ -203,6 +107,7 @@ import {
   formatScaleName,
   simplifyNoteName,
 } from "./utils/enharmonic";
+import { qualityForScaleDegree } from "./utils/scaleHarmony";
 import { changelog } from "./data/changelog";
 
 const {
@@ -220,8 +125,6 @@ const {
   updatePermissionStatus,
   renderDevices,
   getSelectedChannel,
-  applySavedMidiSettings,
-  hasValidSavedMidiSettings,
   saveMidiSettings,
 } = useMidi();
 
@@ -240,29 +143,101 @@ const {
 
 const { toastMessage } = useToast();
 
-const showListView = ref(true);
+const router = useRouter();
+const route = useRoute();
+
+const showListView = computed(() => route.name !== "board");
+const routeBoardId = computed(() => String(route.params.boardId ?? ""));
 const viewTransitionName = ref("view-push-forward");
 const listPanelRef = ref(null);
 const savedListScroll = ref(0);
 const listScrollTargetRef = ref(null);
 const listScrollHandlerRef = ref(null);
+const boardsReady = ref(false);
+const boardIdsKey = computed(() =>
+  (allBoards.value || []).map((b) => String(b.id)).join("|"),
+);
 
 const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
 const permissionPrompt = permissionPromptMidi;
 
-const editDialogRef = ref(null);
 const midiDialogRef = ref(null);
-const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
-const padDeleteDialogRef = ref(null);
-const boardViewRef = ref(null);
+const routeViewRef = ref(null);
 const midiWarningRef = ref(null);
 const toastRef = ref(null);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
+
+function setListPanelRef(el, routeName) {
+  if (routeName === "list") {
+    listPanelRef.value = el;
+  } else if (listPanelRef.value === el) {
+    listPanelRef.value = null;
+  }
+}
+
+const routeViewProps = computed(() => {
+  if (route.name === "list") {
+    return {
+      boards: allBoards.value,
+      midiSupported: midiSupported.value,
+    };
+  }
+
+  return {
+    boardName: activeBoard.value?.name,
+    pads: pads.value,
+    highlightedNotes: currentlyPlayingNoteNames.value,
+    noteVelocityMap: noteVelocityMap.value,
+    padIndex: currentPadIndex.value,
+    permissionAllowed: permissionAllowed.value,
+    midiEnabled: midiEnabled.value,
+    padButtonLabelHtml,
+    padNoteLabel,
+    globalScale: globalScale.value,
+    globalScaleRoot: preferredGlobalScaleRoot.value,
+    globalScaleDisplay: globalScaleDisplayName.value,
+    globalScaleType: globalScaleType.value,
+    globalScaleEnabled: globalScaleEnabled.value,
+    scalePadCount: scaleModePadCount.value,
+  };
+});
+
+const routeViewListeners = computed(() => {
+  if (route.name === "list") {
+    return {
+      "select-board": onSelectBoard,
+      "create-board": onCreateBoard,
+      "duplicate-board": onDuplicateBoard,
+      "delete-board": onDeleteBoard,
+      "rename-board": onRenameBoard,
+      "open-info": openInfoDialog,
+      "open-midi": openMidiDialog,
+    };
+  }
+
+  return {
+    back: goBackToList,
+    "start-pad": onStartPad,
+    "stop-pad": onStopPad,
+    "update-pad": onUpdatePad,
+    delete: requestDeletePad,
+    edit: openEditDialog,
+    "preview-start": onPreviewStart,
+    "preview-stop": onPreviewStop,
+    "save-edit": saveEdit,
+    "close-edit": closeEdit,
+    "close-global-key": onCloseGlobalKey,
+    "save-global-key": saveGlobalKey,
+    "confirm-delete": confirmDeletePad,
+    "cancel-delete": cancelDeletePad,
+    "close-delete": onClosePadDeleteDialog,
+  };
+});
 
 const midiModelOutputId = ref("");
 const midiModelOutCh = ref(1);
@@ -336,7 +311,7 @@ function saveGlobalScaleSettings() {
 function openEditDialog(idx) {
   clearVisualDisplay();
   currentPadIndex.value = idx;
-  boardViewRef.value?.openEditDialog(idx);
+  routeViewRef.value?.openEditDialog?.(idx);
 }
 
 function openMidiDialog() {
@@ -349,11 +324,6 @@ function openMidiDialog() {
 
 function closeMidiDialog() {
   midiDialogRef.value?.close?.();
-}
-
-function openGlobalKeyDialog() {
-  clearVisualDisplay();
-  boardViewRef.value?.openGlobalKeyDialog();
 }
 
 function onCloseGlobalKey() {}
@@ -399,7 +369,7 @@ function checkChangelog() {
 
 function requestDeletePad(idx) {
   deleteConfirmIndex.value = idx;
-  boardViewRef.value?.openPadDeleteDialog();
+  routeViewRef.value?.openPadDeleteDialog?.();
 }
 
 function resetDeleteDialogState() {
@@ -407,7 +377,7 @@ function resetDeleteDialogState() {
 }
 
 function cancelDeletePad() {
-  boardViewRef.value?.closePadDeleteDialog();
+  routeViewRef.value?.closePadDeleteDialog?.();
   resetDeleteDialogState();
 }
 
@@ -418,7 +388,7 @@ function onClosePadDeleteDialog() {
 function confirmDeletePad() {
   const idx = deleteConfirmIndex.value;
   if (typeof idx !== "number" || idx < 0 || idx >= pads.value.length) {
-    padDeleteDialogRef.value?.close?.();
+    routeViewRef.value?.closePadDeleteDialog?.();
     resetDeleteDialogState();
     return;
   }
@@ -428,7 +398,7 @@ function confirmDeletePad() {
   }
   pads.value.splice(idx, 1, createDefaultPad());
   savePads();
-  boardViewRef.value?.closePadDeleteDialog();
+  routeViewRef.value?.closePadDeleteDialog?.();
   resetDeleteDialogState();
 }
 
@@ -494,16 +464,17 @@ function saveGlobalKey({ scale, type, enabled }) {
 
 // Board management handlers
 function onSelectBoard(boardId) {
-  savedListScroll.value = getListScrollTarget()?.scrollTop ?? 0;
-  viewTransitionName.value = "view-push-forward";
-  setActiveBoard(boardId);
-  loadActiveBoardState();
-  showListView.value = false;
+  const nextId = String(boardId ?? "");
+  if (!nextId) return;
+  if (route.name === "board" && routeBoardId.value === nextId) return;
+  savedListScroll.value =
+    getListScrollTarget()?.scrollTop ?? savedListScroll.value;
+  router.push({ name: "board", params: { boardId } });
 }
 
 function goBackToList() {
-  viewTransitionName.value = "view-push-back";
-  showListView.value = true;
+  if (route.name === "list") return;
+  router.push({ name: "list" });
 }
 
 function onViewAfterEnter() {
@@ -534,10 +505,52 @@ function onDuplicateBoard(boardId) {
 
 function onDeleteBoard(boardId) {
   deleteBoard(boardId);
+
+  if (route.name === "board" && routeBoardId.value === String(boardId)) {
+    if (!allBoards.value.length) {
+      router.replace({ name: "list" });
+      return;
+    }
+    const fallbackId = activeBoard.value?.id || allBoards.value[0]?.id;
+    if (fallbackId) {
+      router.replace({ name: "board", params: { boardId: fallbackId } });
+      return;
+    }
+  }
+
   // If we deleted the active board and there are still boards left
   if (activeBoard.value) {
     loadActiveBoardState();
   }
+}
+
+function syncBoardFromRoute() {
+  if (!boardsReady.value) return;
+  if (route.name !== "board") return;
+
+  const currentRouteBoardId = routeBoardId.value;
+  if (!currentRouteBoardId) {
+    router.replace({ name: "list" });
+    return;
+  }
+
+  const ids = (allBoards.value || []).map((b) => String(b.id));
+  if (!ids.includes(currentRouteBoardId)) {
+    if (!ids.length) {
+      router.replace({ name: "list" });
+      return;
+    }
+    const fallbackId = String(activeBoard.value?.id || ids[0]);
+    if (fallbackId !== currentRouteBoardId) {
+      router.replace({ name: "board", params: { boardId: fallbackId } });
+    }
+    return;
+  }
+
+  if (String(activeBoard.value?.id ?? "") !== currentRouteBoardId) {
+    setActiveBoard(currentRouteBoardId);
+  }
+  loadActiveBoardState();
 }
 
 function onRenameBoard(boardId, newName) {
@@ -622,6 +635,7 @@ onMounted(() => {
 
   // Load boards (handles migration from legacy format)
   loadBoards();
+  boardsReady.value = true;
 
   checkChangelog();
 
@@ -629,6 +643,26 @@ onMounted(() => {
     midiWarningRef.value?.showPopover();
   }
 });
+
+watch(
+  () => route.name,
+  (to, from) => {
+    if (to === from) return;
+    if (from === "list" && to === "board") {
+      viewTransitionName.value = "view-push-forward";
+    } else if (from === "board" && to === "list") {
+      viewTransitionName.value = "view-push-back";
+    }
+  },
+);
+
+watch(
+  () => [route.name, routeBoardId.value, boardIdsKey.value],
+  () => {
+    syncBoardFromRoute();
+  },
+  { flush: "post", immediate: true },
+);
 
 onBeforeUnmount(() => {
   disconnectMidi();
@@ -777,38 +811,12 @@ function saveEdit(snapshot) {
 }
 
 function closeEdit() {
-  boardViewRef.value?.closeEditDialog();
+  routeViewRef.value?.closeEditDialog?.();
 }
 
 // Build chord label and notes from pad state
-function semitoneDistance(pcFrom, pcTo) {
-  const base = Note.midi(`${pcFrom}4`) ?? 60;
-  let target = Note.midi(`${pcTo}4`) ?? base;
-  while (target < base) target += 12;
-  return (target - base) % 12;
-}
-function qualityFromTriad(triad, rootPc) {
-  const [r, t, f] = triad;
-  if (!r || !t || !f) return "";
-  const third = semitoneDistance(rootPc, t);
-  const fifth = semitoneDistance(rootPc, f);
-  if (third === 3 && fifth === 6) return "dim";
-  if (third === 4 && fifth === 8) return "aug";
-  if (third === 3 && fifth === 7) return "m";
-  if (third === 4 && fifth === 7) return "";
-  return "";
-}
 function qualityForDegree(index) {
-  const s = Array.isArray(globalScaleNotes.value) ? globalScaleNotes.value : [];
-  if (s.length < 3) return "";
-  const i = index % s.length;
-  const triad = [s[i], s[(i + 2) % s.length], s[(i + 4) % s.length]];
-  return qualityFromTriad(triad, s[i]);
-}
-
-function buildChordSymbol(rootPc, type, extension) {
-  const definition = buildChordDefinition(rootPc, type, extension);
-  return definition.displaySymbol;
+  return qualityForScaleDegree(globalScaleNotes.value, index);
 }
 
 function pcsToAscending(pcs, baseOct) {
@@ -937,28 +945,107 @@ function currentScaleIndex(pad) {
   return (deg - 1) % (s.length || 7);
 }
 
-function padChordSymbol(pad) {
-  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return "";
+const PAD_MUSIC_CACHE_MAX = 512;
+const padMusicCache = new Map();
+
+function buildPadMusicCacheKey(pad) {
+  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return "u";
+  const scaleSig = `${globalScale.value}|${globalScaleType.value}`;
   if (pad.mode === "scale") {
-    const rootPc = chordRootForPad(pad);
-    const q = qualityForDegree(currentScaleIndex(pad));
-    const type =
-      q === "m"
-        ? "minor"
-        : q === "dim"
-          ? "diminished"
-          : q === "aug"
-            ? "augmented"
-            : "major";
-    const ext = normalizeExtension(pad?.scale?.extension);
-    return buildChordSymbol(rootPc, type, ext);
-  } else if (pad.mode === "free") {
-    const rootPc = pad?.free?.root || "C";
-    const type = normalizeChordType(pad?.free?.type);
-    const ext = normalizeExtension(pad?.free?.extension);
-    return buildChordSymbol(rootPc, type, ext);
+    return [
+      "s",
+      scaleSig,
+      pad?.scale?.degree ?? "1",
+      pad?.scale?.extension ?? "none",
+      pad?.scale?.octave ?? 4,
+      pad?.scale?.inversion ?? "root",
+      pad?.scale?.voicing ?? "close",
+    ].join("|");
   }
-  return "";
+  return [
+    "f",
+    pad?.free?.root ?? "C",
+    pad?.free?.type ?? "major",
+    pad?.free?.extension ?? "none",
+    pad?.free?.octave ?? 4,
+    pad?.free?.inversion ?? "root",
+    pad?.free?.voicing ?? "close",
+  ].join("|");
+}
+
+function resolvePadMusicData(pad) {
+  const cacheKey = buildPadMusicCacheKey(pad);
+  if (cacheKey === "u") return { symbol: "", notes: [] };
+
+  const cached = padMusicCache.get(cacheKey);
+  if (cached) return cached;
+
+  let rootPc = "C";
+  let type = "major";
+  let extension = "none";
+  let oct = 4;
+  let inv = "root";
+  let voi = "close";
+
+  if (pad.mode === "scale") {
+    rootPc = chordRootForPad(pad);
+    type = normalizeChordType(qualityForDegree(currentScaleIndex(pad)));
+    extension = normalizeExtension(pad?.scale?.extension);
+    oct = padBaseOctave(pad);
+    inv = pad?.scale?.inversion || "root";
+    voi = pad?.scale?.voicing || "close";
+  } else {
+    rootPc = pad?.free?.root || "C";
+    type = normalizeChordType(pad?.free?.type);
+    extension = normalizeExtension(pad?.free?.extension);
+    oct = padBaseOctave(pad);
+    inv = pad?.free?.inversion || "root";
+    voi = pad?.free?.voicing || "close";
+  }
+
+  const definition = buildChordDefinition(rootPc, type, extension);
+  const symbol = definition.displaySymbol;
+  const pcs = definition.notes;
+
+  let notes = [];
+  if (!pcs.length) {
+    notes = [`${rootPc}${oct}`];
+  } else {
+    const base = pcsToAscending(pcs, oct);
+    const afterInv = applyInversion(base, inv);
+    const afterVoicing = applyVoicing(afterInv, voi);
+    notes = sortByMidi(afterVoicing);
+  }
+
+  const labelHtml = symbol
+    ? formatChordSymbol(
+        symbol,
+        preferredGlobalScaleRoot.value,
+        globalScaleType.value,
+      )
+    : "UNASSIGNED";
+  const noteLabel = notes.length
+    ? notes
+        .map((note) =>
+          formatNoteName(
+            simplifyNoteName(note),
+            preferredGlobalScaleRoot.value,
+            globalScaleType.value,
+          ),
+        )
+        .join(" ")
+    : "";
+
+  const resolved = { symbol, notes, labelHtml, noteLabel };
+  padMusicCache.set(cacheKey, resolved);
+  if (padMusicCache.size > PAD_MUSIC_CACHE_MAX) {
+    padMusicCache.clear();
+  }
+  return resolved;
+}
+
+function padChordSymbol(pad) {
+  return resolvePadMusicData(pad).symbol;
 }
 
 function padBaseOctave(pad) {
@@ -975,59 +1062,15 @@ function padBaseOctave(pad) {
 }
 
 function padNotes(pad) {
-  const symbol = padChordSymbol(pad);
-  if (!symbol) return [];
-  const type =
-    pad.mode === "scale"
-      ? normalizeChordType(qualityForDegree(currentScaleIndex(pad)))
-      : normalizeChordType(pad?.free?.type);
-  const extension =
-    pad.mode === "scale"
-      ? normalizeExtension(pad?.scale?.extension)
-      : normalizeExtension(pad?.free?.extension);
-  const definition = buildChordDefinition(
-    chordRootForPad(pad),
-    type,
-    extension,
-  );
-  const pcs = definition.notes;
-  const oct = padBaseOctave(pad);
-  if (!pcs.length) {
-    const rootPc = symbol.replace(/[^A-G#b].*$/, "");
-    return [`${rootPc}${oct}`];
-  }
-  // Base ascending stack
-  const base = pcsToAscending(pcs, oct);
-  const inv =
-    pad.mode === "scale" ? pad?.scale?.inversion : pad?.free?.inversion;
-  const voi = pad.mode === "scale" ? pad?.scale?.voicing : pad?.free?.voicing;
-  const afterInv = applyInversion(base, inv || "root");
-  const afterVoicing = applyVoicing(afterInv, voi || "close");
-  return sortByMidi(afterVoicing);
+  return resolvePadMusicData(pad).notes;
 }
 
 function padButtonLabelHtml(pad) {
-  const s = padChordSymbol(pad);
-  if (!s) return "UNASSIGNED";
-  return formatChordSymbol(
-    s,
-    preferredGlobalScaleRoot.value,
-    globalScaleType.value,
-  );
+  return resolvePadMusicData(pad).labelHtml;
 }
 
 function padNoteLabel(pad) {
-  const notes = padNotes(pad);
-  if (!notes.length) return "";
-  return notes
-    .map((note) =>
-      formatNoteName(
-        simplifyNoteName(note),
-        preferredGlobalScaleRoot.value,
-        globalScaleType.value,
-      ),
-    )
-    .join(" ");
+  return resolvePadMusicData(pad).noteLabel;
 }
 
 import { reactive } from "vue";
@@ -1038,6 +1081,20 @@ const padTimers = reactive({});
 const padSchedules = reactive({});
 const padVisualReleaseTimers = reactive({});
 const VISUAL_RELEASE_MS = 120;
+
+function applyAxisExpression(axisValue, func, state) {
+  if (func === "velocity") {
+    state.baseVelocity = axisValue;
+  } else if (func === "strum") {
+    // Map 0-1 to 0-500ms
+    state.strumDuration = axisValue * 500;
+  } else if (func === "humanization") {
+    state.humanizeAmount = axisValue;
+  } else if (func === "velocity-tilt") {
+    // Map 0-1 to -1 to 1
+    state.tiltAmount = (axisValue - 0.5) * 2;
+  }
+}
 
 function onStartPad(idx, e, coords) {
   try {
@@ -1064,31 +1121,18 @@ function onStartPad(idx, e, coords) {
     if (!ch) return;
 
     // Calculate start parameters
-    let baseVelocity = DEFAULT_ATTACK;
-    let strumDuration = 0;
-    let humanizeAmount = 0;
-    let tiltAmount = 0;
+    const expressionState = {
+      baseVelocity: DEFAULT_ATTACK,
+      strumDuration: 0,
+      humanizeAmount: 0,
+      tiltAmount: 0,
+    };
 
     const settings = pad.settings || { x: "none", y: "none" };
 
-    // Helper to process axis
-    const processAxis = (axisValue, func) => {
-      if (func === "velocity") {
-        baseVelocity = axisValue;
-      } else if (func === "strum") {
-        // Map 0-1 to 0-500ms
-        strumDuration = axisValue * 500;
-      } else if (func === "humanization") {
-        humanizeAmount = axisValue;
-      } else if (func === "velocity-tilt") {
-        // Map 0-1 to -1 to 1
-        tiltAmount = (axisValue - 0.5) * 2;
-      }
-    };
-
     if (coords) {
-      processAxis(coords.x, settings.x);
-      processAxis(coords.y, settings.y);
+      applyAxisExpression(coords.x, settings.x, expressionState);
+      applyAxisExpression(coords.y, settings.y, expressionState);
     }
 
     // Keep current highlights until explicit release to avoid flicker on rapid retriggers.
@@ -1097,17 +1141,19 @@ function onStartPad(idx, e, coords) {
 
     const now = WebMidi.time;
     const strumStep =
-      strumDuration > 0 && notes.length > 1 ? strumDuration / notes.length : 0;
+      expressionState.strumDuration > 0 && notes.length > 1
+        ? expressionState.strumDuration / notes.length
+        : 0;
 
     // Look-ahead time for buffering (send notes this many ms in advance)
     const BUFFER_MS = 50;
 
     // Play notes with individual velocity and timing
     notes.forEach((n, i) => {
-      let vel = baseVelocity;
+      let vel = expressionState.baseVelocity;
 
       // Apply Velocity Tilt
-      if (tiltAmount !== 0 && notes.length > 1) {
+      if (expressionState.tiltAmount !== 0 && notes.length > 1) {
         // -1 (bass loud) to 1 (treble loud)
         // Position in chord: 0 to 1
         const pos = i / (notes.length - 1);
@@ -1117,13 +1163,14 @@ function onStartPad(idx, e, coords) {
         // If tilt is -1 (bass loud): bass(bias=-1) -> +1, treble(bias=1) -> -1
         // If tilt is 1 (treble loud): bass(bias=-1) -> -1, treble(bias=1) -> +1
         // Scale factor: 0.25 (so +/- 0.25 velocity change)
-        vel += tiltAmount * bias * 0.25;
+        vel += expressionState.tiltAmount * bias * 0.25;
       }
 
       // Apply Humanization (Velocity)
-      if (humanizeAmount > 0) {
+      if (expressionState.humanizeAmount > 0) {
         // +/- 0.2 (approx 25 velocity steps) at max
-        const delta = (Math.random() - 0.5) * 0.4 * humanizeAmount;
+        const delta =
+          (Math.random() - 0.5) * 0.4 * expressionState.humanizeAmount;
         vel += delta;
       }
 
@@ -1134,9 +1181,10 @@ function onStartPad(idx, e, coords) {
       let noteTime = now + i * strumStep;
 
       // Apply Humanization (Microtiming)
-      if (humanizeAmount > 0) {
+      if (expressionState.humanizeAmount > 0) {
         // +/- 35ms * amount
-        const timeDelta = (Math.random() - 0.5) * 70 * humanizeAmount;
+        const timeDelta =
+          (Math.random() - 0.5) * 70 * expressionState.humanizeAmount;
         noteTime += timeDelta;
       }
 
@@ -1148,14 +1196,9 @@ function onStartPad(idx, e, coords) {
           // Use precise MIDI time
           ch.playNote(n, { attack: vel, time: noteTime });
           if (!Array.isArray(activePadNotes[idx])) activePadNotes[idx] = [];
-          if (!activePadNotes[idx].includes(n)) {
-            activePadNotes[idx] = [...activePadNotes[idx], n];
-          }
+          activePadNotes[idx].push(n);
           if (!activeNoteVelocities[idx]) activeNoteVelocities[idx] = {};
-          activeNoteVelocities[idx] = {
-            ...activeNoteVelocities[idx],
-            [n]: vel,
-          };
+          activeNoteVelocities[idx][n] = vel;
           // Track that we sent this note to the driver
           padSchedules[idx].push({ note: n, time: noteTime });
         } catch {}
@@ -1279,23 +1322,31 @@ const activePreviewNotes = ref([]);
 // Track the last played chord to keep it visible on keyboard
 const lastPlayedNotes = ref([]);
 
+function collectActivePadNotes() {
+  const out = [];
+  for (const arr of Object.values(activePadNotes)) {
+    if (!Array.isArray(arr)) continue;
+    for (const note of arr) out.push(note);
+  }
+  return out;
+}
+
 // Notes that are currently sounding right now (pads + preview).
 const currentlyPlayingNoteNames = computed(() => {
-  const fromPads = Object.values(activePadNotes).flatMap((arr) =>
-    Array.isArray(arr) ? arr : [],
-  );
+  const fromPads = collectActivePadNotes();
   const fromPreview = Array.isArray(activePreviewNotes.value)
     ? activePreviewNotes.value
     : [];
-  return simplifyNoteList([...fromPads, ...fromPreview]);
+  return simplifyNoteList(fromPads.concat(fromPreview));
 });
 
 // Velocity map for currently playing notes (used for visual brightness on keyboard)
 const noteVelocityMap = computed(() => {
-  const map = {};
+  const map = Object.create(null);
   for (const padVels of Object.values(activeNoteVelocities)) {
-    if (padVels && typeof padVels === "object") {
-      Object.assign(map, padVels);
+    if (!padVels || typeof padVels !== "object") continue;
+    for (const key of Object.keys(padVels)) {
+      map[key] = padVels[key];
     }
   }
   for (const n of activePreviewNotes.value || []) {
@@ -1350,32 +1401,4 @@ function onPreviewStop() {
     activePreviewNotes.value = [];
   }
 }
-
-// pcToKeyToken imported from ./utils/music
-
-// Currently playing note names (with octaves) from pads.
-// When no pads are active, show the last played chord.
-const activeNoteNames = computed(() => {
-  const fromPads = Object.values(activePadNotes).flatMap((arr) =>
-    Array.isArray(arr) ? arr : [],
-  );
-  // If no pads are currently playing, show the last played chord
-  if (fromPads.length === 0 && lastPlayedNotes.value.length > 0) {
-    return simplifyNoteList(lastPlayedNotes.value);
-  }
-  return simplifyNoteList(fromPads);
-});
-
-// Human-friendly now playing line
-const nowPlayingHtml = computed(() => {
-  const notes = activeNoteNames.value.slice();
-  if (!notes.length) return "";
-  // Sort ascending by MIDI for readability
-  notes.sort((a, b) => (Note.midi(a) ?? 0) - (Note.midi(b) ?? 0));
-  // Format each note with enharmonic preference based on global key
-  const formatted = notes.map((n) =>
-    formatNoteName(n, preferredGlobalScaleRoot.value, globalScaleType.value),
-  );
-  return formatted.join(" ");
-});
 </script>

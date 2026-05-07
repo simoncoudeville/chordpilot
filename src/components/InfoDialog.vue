@@ -21,7 +21,6 @@
             :size="16"
             :absoluteStrokeWidth="true"
           />
-          <span class="sr-only">Close</span>
         </button>
       </div>
       <div class="dialog-content">

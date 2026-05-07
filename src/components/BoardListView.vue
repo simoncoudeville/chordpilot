@@ -1,7 +1,7 @@
 <template>
-  <div class="top">
+  <div class="app-bar">
     <h1>Chordboard</h1>
-    <div class="top-buttons">
+    <div class="app-bar-actions">
       <button
         class="icon-button"
         type="button"
@@ -33,7 +33,6 @@
       </button>
     </div>
   </div>
-
   <div class="board-list">
     <div
       v-for="board in props.boards"
@@ -42,8 +41,10 @@
       @click="selectBoard(board.id)"
     >
       <div class="board-row-info">
-        <h2>{{ board.name }}</h2>
-        <p class="color-meta">{{ formatDate(board.createdAt) }}</p>
+        <h2 class="board-row-title">{{ board.name }}</h2>
+        <p class="board-row-meta color-meta">
+          {{ formatDate(board.createdAt) }}
+        </p>
       </div>
       <button
         class="icon-button"
@@ -158,7 +159,11 @@
         <button class="button" type="button" @click="closeRenameDialog">
           Cancel
         </button>
-        <button class="button primary" type="button" @click="confirmRename">
+        <button
+          class="button button-primary"
+          type="button"
+          @click="confirmRename"
+        >
           Rename
         </button>
       </div>
@@ -197,7 +202,11 @@
         <button class="button" type="button" @click="closeDeleteDialog">
           Cancel
         </button>
-        <button class="button primary" type="button" @click="confirmDelete">
+        <button
+          class="button button-primary"
+          type="button"
+          @click="confirmDelete"
+        >
           Delete
         </button>
       </div>
@@ -208,7 +217,6 @@
 <script setup>
 import { ref, nextTick } from "vue";
 import {
-  BadgeInfo,
   Copy,
   EllipsisVertical,
   Icon,
@@ -347,12 +355,17 @@ function closeDeleteDialog() {
 function formatDate(timestamp) {
   const date = new Date(timestamp);
   const now = new Date();
-  const diff = now - date;
-  const oneDay = 86400000;
+  if (Number.isNaN(date.getTime())) return "";
 
-  if (diff < oneDay && now.getDate() === date.getDate()) return "today";
-  if (diff < oneDay * 2 && now.getDate() - date.getDate() === 1)
-    return "yesterday";
+  const toLocalDayStart = (d) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const oneDay = 86400000;
+  const dayDiff = Math.round(
+    (toLocalDayStart(now) - toLocalDayStart(date)) / oneDay,
+  );
+
+  if (dayDiff === 0) return "today";
+  if (dayDiff === 1) return "yesterday";
 
   return date.toLocaleDateString("en-US", {
     month: "short",
