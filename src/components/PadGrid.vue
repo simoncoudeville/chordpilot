@@ -87,6 +87,7 @@ const emit = defineEmits([
 // Track which pad indices are currently pressed to avoid :active delay on mobile
 import { ref } from "vue";
 const pressedPads = ref(new Set());
+const activePadRects = new Map();
 
 function onEditUnassigned(idx, e) {
   // Defer to next macrotask so any bubbling click/pointerup that might
@@ -109,19 +110,26 @@ function onStop(idx, pad, e) {
 function onPressStart(idx, pad, e) {
   // mark pressed state immediately for visual feedback
   pressedPads.value.add(idx);
-  const coords = getRelativeCoordinates(e, e.currentTarget);
+  const element = e.currentTarget;
+  const rect = element?.getBoundingClientRect?.() || null;
+  if (rect) activePadRects.set(idx, rect);
+  const coords = getRelativeCoordinates(e, element, rect);
   onStart(idx, pad, e, coords);
 }
 
 function onPointerMove(idx, pad, e) {
   if (!pressedPads.value.has(idx)) return;
-  const coords = getRelativeCoordinates(e, e.currentTarget);
+  const coords = getRelativeCoordinates(
+    e,
+    e.currentTarget,
+    activePadRects.get(idx),
+  );
   emit("update-pad", idx, coords);
 }
 
-function getRelativeCoordinates(event, element) {
-  if (!element) return { x: 0.5, y: 0.5 };
-  const rect = element.getBoundingClientRect();
+function getRelativeCoordinates(event, element, cachedRect = null) {
+  const rect = cachedRect || element?.getBoundingClientRect?.();
+  if (!rect) return { x: 0.5, y: 0.5 };
 
   // Safe zones
   const OFF_TOP = 12;
@@ -151,6 +159,7 @@ function getRelativeCoordinates(event, element) {
 function onPressEnd(idx, pad, e) {
   // clear pressed state; slight defer to ensure class removal after event cycle
   pressedPads.value.delete(idx);
+  activePadRects.delete(idx);
   onStop(idx, pad, e);
 }
 </script>

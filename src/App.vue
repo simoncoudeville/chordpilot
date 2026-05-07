@@ -715,11 +715,6 @@ function qualityForDegree(index) {
   return qualityForScaleDegree(globalScaleNotes.value, index);
 }
 
-function buildChordSymbol(rootPc, type, extension) {
-  const definition = buildChordDefinition(rootPc, type, extension);
-  return definition.displaySymbol;
-}
-
 function pcsToAscending(pcs, baseOct) {
   const out = [];
   let lastMidi = -Infinity;
@@ -846,28 +841,88 @@ function currentScaleIndex(pad) {
   return (deg - 1) % (s.length || 7);
 }
 
-function padChordSymbol(pad) {
-  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return "";
+const PAD_MUSIC_CACHE_MAX = 512;
+const padMusicCache = new Map();
+
+function buildPadMusicCacheKey(pad) {
+  if (!pad || pad.mode === "unassigned" || pad.assigned === false) return "u";
+  const scaleSig = `${globalScale.value}|${globalScaleType.value}`;
   if (pad.mode === "scale") {
-    const rootPc = chordRootForPad(pad);
-    const q = qualityForDegree(currentScaleIndex(pad));
-    const type =
-      q === "m"
-        ? "minor"
-        : q === "dim"
-          ? "diminished"
-          : q === "aug"
-            ? "augmented"
-            : "major";
-    const ext = normalizeExtension(pad?.scale?.extension);
-    return buildChordSymbol(rootPc, type, ext);
-  } else if (pad.mode === "free") {
-    const rootPc = pad?.free?.root || "C";
-    const type = normalizeChordType(pad?.free?.type);
-    const ext = normalizeExtension(pad?.free?.extension);
-    return buildChordSymbol(rootPc, type, ext);
+    return [
+      "s",
+      scaleSig,
+      pad?.scale?.degree ?? "1",
+      pad?.scale?.extension ?? "none",
+      pad?.scale?.octave ?? 4,
+      pad?.scale?.inversion ?? "root",
+      pad?.scale?.voicing ?? "close",
+    ].join("|");
   }
-  return "";
+  return [
+    "f",
+    pad?.free?.root ?? "C",
+    pad?.free?.type ?? "major",
+    pad?.free?.extension ?? "none",
+    pad?.free?.octave ?? 4,
+    pad?.free?.inversion ?? "root",
+    pad?.free?.voicing ?? "close",
+  ].join("|");
+}
+
+function resolvePadMusicData(pad) {
+  const cacheKey = buildPadMusicCacheKey(pad);
+  if (cacheKey === "u") return { symbol: "", notes: [] };
+
+  const cached = padMusicCache.get(cacheKey);
+  if (cached) return cached;
+
+  let rootPc = "C";
+  let type = "major";
+  let extension = "none";
+  let oct = 4;
+  let inv = "root";
+  let voi = "close";
+
+  if (pad.mode === "scale") {
+    rootPc = chordRootForPad(pad);
+    type = normalizeChordType(qualityForDegree(currentScaleIndex(pad)));
+    extension = normalizeExtension(pad?.scale?.extension);
+    oct = padBaseOctave(pad);
+    inv = pad?.scale?.inversion || "root";
+    voi = pad?.scale?.voicing || "close";
+  } else {
+    rootPc = pad?.free?.root || "C";
+    type = normalizeChordType(pad?.free?.type);
+    extension = normalizeExtension(pad?.free?.extension);
+    oct = padBaseOctave(pad);
+    inv = pad?.free?.inversion || "root";
+    voi = pad?.free?.voicing || "close";
+  }
+
+  const definition = buildChordDefinition(rootPc, type, extension);
+  const symbol = definition.displaySymbol;
+  const pcs = definition.notes;
+
+  let notes = [];
+  if (!pcs.length) {
+    notes = [`${rootPc}${oct}`];
+  } else {
+    const base = pcsToAscending(pcs, oct);
+    const afterInv = applyInversion(base, inv);
+    const afterVoicing = applyVoicing(afterInv, voi);
+    notes = sortByMidi(afterVoicing);
+  }
+
+  const resolved = { symbol, notes };
+  padMusicCache.set(cacheKey, resolved);
+  if (padMusicCache.size > PAD_MUSIC_CACHE_MAX) {
+    padMusicCache.clear();
+  }
+  return resolved;
+}
+
+function padChordSymbol(pad) {
+  return resolvePadMusicData(pad).symbol;
 }
 
 function padBaseOctave(pad) {
@@ -884,35 +939,7 @@ function padBaseOctave(pad) {
 }
 
 function padNotes(pad) {
-  const symbol = padChordSymbol(pad);
-  if (!symbol) return [];
-  const type =
-    pad.mode === "scale"
-      ? normalizeChordType(qualityForDegree(currentScaleIndex(pad)))
-      : normalizeChordType(pad?.free?.type);
-  const extension =
-    pad.mode === "scale"
-      ? normalizeExtension(pad?.scale?.extension)
-      : normalizeExtension(pad?.free?.extension);
-  const definition = buildChordDefinition(
-    chordRootForPad(pad),
-    type,
-    extension,
-  );
-  const pcs = definition.notes;
-  const oct = padBaseOctave(pad);
-  if (!pcs.length) {
-    const rootPc = symbol.replace(/[^A-G#b].*$/, "");
-    return [`${rootPc}${oct}`];
-  }
-  // Base ascending stack
-  const base = pcsToAscending(pcs, oct);
-  const inv =
-    pad.mode === "scale" ? pad?.scale?.inversion : pad?.free?.inversion;
-  const voi = pad.mode === "scale" ? pad?.scale?.voicing : pad?.free?.voicing;
-  const afterInv = applyInversion(base, inv || "root");
-  const afterVoicing = applyVoicing(afterInv, voi || "close");
-  return sortByMidi(afterVoicing);
+  return resolvePadMusicData(pad).notes;
 }
 
 function padButtonLabelHtml(pad) {
@@ -948,6 +975,20 @@ const padSchedules = reactive({});
 const padVisualReleaseTimers = reactive({});
 const VISUAL_RELEASE_MS = 120;
 
+function applyAxisExpression(axisValue, func, state) {
+  if (func === "velocity") {
+    state.baseVelocity = axisValue;
+  } else if (func === "strum") {
+    // Map 0-1 to 0-500ms
+    state.strumDuration = axisValue * 500;
+  } else if (func === "humanization") {
+    state.humanizeAmount = axisValue;
+  } else if (func === "velocity-tilt") {
+    // Map 0-1 to -1 to 1
+    state.tiltAmount = (axisValue - 0.5) * 2;
+  }
+}
+
 function onStartPad(idx, e, coords) {
   try {
     if (padVisualReleaseTimers[idx]) {
@@ -973,31 +1014,18 @@ function onStartPad(idx, e, coords) {
     if (!ch) return;
 
     // Calculate start parameters
-    let baseVelocity = DEFAULT_ATTACK;
-    let strumDuration = 0;
-    let humanizeAmount = 0;
-    let tiltAmount = 0;
+    const expressionState = {
+      baseVelocity: DEFAULT_ATTACK,
+      strumDuration: 0,
+      humanizeAmount: 0,
+      tiltAmount: 0,
+    };
 
     const settings = pad.settings || { x: "none", y: "none" };
 
-    // Helper to process axis
-    const processAxis = (axisValue, func) => {
-      if (func === "velocity") {
-        baseVelocity = axisValue;
-      } else if (func === "strum") {
-        // Map 0-1 to 0-500ms
-        strumDuration = axisValue * 500;
-      } else if (func === "humanization") {
-        humanizeAmount = axisValue;
-      } else if (func === "velocity-tilt") {
-        // Map 0-1 to -1 to 1
-        tiltAmount = (axisValue - 0.5) * 2;
-      }
-    };
-
     if (coords) {
-      processAxis(coords.x, settings.x);
-      processAxis(coords.y, settings.y);
+      applyAxisExpression(coords.x, settings.x, expressionState);
+      applyAxisExpression(coords.y, settings.y, expressionState);
     }
 
     // Keep current highlights until explicit release to avoid flicker on rapid retriggers.
@@ -1006,17 +1034,19 @@ function onStartPad(idx, e, coords) {
 
     const now = WebMidi.time;
     const strumStep =
-      strumDuration > 0 && notes.length > 1 ? strumDuration / notes.length : 0;
+      expressionState.strumDuration > 0 && notes.length > 1
+        ? expressionState.strumDuration / notes.length
+        : 0;
 
     // Look-ahead time for buffering (send notes this many ms in advance)
     const BUFFER_MS = 50;
 
     // Play notes with individual velocity and timing
     notes.forEach((n, i) => {
-      let vel = baseVelocity;
+      let vel = expressionState.baseVelocity;
 
       // Apply Velocity Tilt
-      if (tiltAmount !== 0 && notes.length > 1) {
+      if (expressionState.tiltAmount !== 0 && notes.length > 1) {
         // -1 (bass loud) to 1 (treble loud)
         // Position in chord: 0 to 1
         const pos = i / (notes.length - 1);
@@ -1026,13 +1056,14 @@ function onStartPad(idx, e, coords) {
         // If tilt is -1 (bass loud): bass(bias=-1) -> +1, treble(bias=1) -> -1
         // If tilt is 1 (treble loud): bass(bias=-1) -> -1, treble(bias=1) -> +1
         // Scale factor: 0.25 (so +/- 0.25 velocity change)
-        vel += tiltAmount * bias * 0.25;
+        vel += expressionState.tiltAmount * bias * 0.25;
       }
 
       // Apply Humanization (Velocity)
-      if (humanizeAmount > 0) {
+      if (expressionState.humanizeAmount > 0) {
         // +/- 0.2 (approx 25 velocity steps) at max
-        const delta = (Math.random() - 0.5) * 0.4 * humanizeAmount;
+        const delta =
+          (Math.random() - 0.5) * 0.4 * expressionState.humanizeAmount;
         vel += delta;
       }
 
@@ -1043,9 +1074,10 @@ function onStartPad(idx, e, coords) {
       let noteTime = now + i * strumStep;
 
       // Apply Humanization (Microtiming)
-      if (humanizeAmount > 0) {
+      if (expressionState.humanizeAmount > 0) {
         // +/- 35ms * amount
-        const timeDelta = (Math.random() - 0.5) * 70 * humanizeAmount;
+        const timeDelta =
+          (Math.random() - 0.5) * 70 * expressionState.humanizeAmount;
         noteTime += timeDelta;
       }
 
@@ -1183,23 +1215,31 @@ const activePreviewNotes = ref([]);
 // Track the last played chord to keep it visible on keyboard
 const lastPlayedNotes = ref([]);
 
+function collectActivePadNotes() {
+  const out = [];
+  for (const arr of Object.values(activePadNotes)) {
+    if (!Array.isArray(arr)) continue;
+    for (const note of arr) out.push(note);
+  }
+  return out;
+}
+
 // Notes that are currently sounding right now (pads + preview).
 const currentlyPlayingNoteNames = computed(() => {
-  const fromPads = Object.values(activePadNotes).flatMap((arr) =>
-    Array.isArray(arr) ? arr : [],
-  );
+  const fromPads = collectActivePadNotes();
   const fromPreview = Array.isArray(activePreviewNotes.value)
     ? activePreviewNotes.value
     : [];
-  return simplifyNoteList([...fromPads, ...fromPreview]);
+  return simplifyNoteList(fromPads.concat(fromPreview));
 });
 
 // Velocity map for currently playing notes (used for visual brightness on keyboard)
 const noteVelocityMap = computed(() => {
-  const map = {};
+  const map = Object.create(null);
   for (const padVels of Object.values(activeNoteVelocities)) {
-    if (padVels && typeof padVels === "object") {
-      Object.assign(map, padVels);
+    if (!padVels || typeof padVels !== "object") continue;
+    for (const key of Object.keys(padVels)) {
+      map[key] = padVels[key];
     }
   }
   for (const n of activePreviewNotes.value || []) {
