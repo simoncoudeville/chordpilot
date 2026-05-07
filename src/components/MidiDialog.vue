@@ -51,7 +51,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button button-block primary"
+              class="button button-block button-primary"
               @click="$emit('request-permission')"
             >
               Allow MIDI
@@ -82,7 +82,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button button-block primary"
+              class="button button-block button-primary"
               @click="enableMidiWithTransition"
             >
               Enable MIDI
@@ -158,7 +158,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button button-block primary"
+              class="button button-block button-primary"
               @click="$emit('rescan')"
             >
               Scan for devices

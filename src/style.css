@@ -979,6 +979,7 @@ dialog:open {
   gap: var(--space-1-5);
   padding: var(--space-1-5) 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 
   .icon-button {
     margin-right: calc(var(--space-1) * -1);
