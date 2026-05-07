@@ -1,24 +1,26 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { h } from "vue";
-
-const RouteStub = { render: () => h("div") };
+import BoardListRoute from "../views/BoardListRoute.vue";
+import BoardDetailRoute from "../views/BoardDetailRoute.vue";
 
 const routes = [
   {
     path: "/",
     name: "list",
-    component: RouteStub,
+    component: BoardListRoute,
   },
   {
     path: "/board/:boardId",
     name: "board",
-    component: RouteStub,
-    props: true,
+    component: BoardDetailRoute,
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
   },
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 

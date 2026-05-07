@@ -1,55 +1,21 @@
 <template>
   <div class="view-shell">
-    <Transition :name="viewTransitionName" @after-enter="onViewAfterEnter">
-      <div v-if="showListView" key="list" class="view-panel" ref="listPanelRef">
-        <BoardListView
-          :boards="allBoards"
-          :midi-supported="midiSupported"
-          @select-board="onSelectBoard"
-          @create-board="onCreateBoard"
-          @duplicate-board="onDuplicateBoard"
-          @delete-board="onDeleteBoard"
-          @rename-board="onRenameBoard"
-          @open-info="openInfoDialog"
-          @open-midi="openMidiDialog"
-        />
-      </div>
-      <div v-else key="detail" class="view-panel">
-        <BoardView
-          ref="boardViewRef"
-          :board-name="activeBoard?.name"
-          :pads="pads"
-          :highlighted-notes="currentlyPlayingNoteNames"
-          :note-velocity-map="noteVelocityMap"
-          :pad-index="currentPadIndex"
-          :permission-allowed="permissionAllowed"
-          :midi-enabled="midiEnabled"
-          :pad-button-label-html="padButtonLabelHtml"
-          :pad-note-label="padNoteLabel"
-          :global-scale="globalScale"
-          :global-scale-root="preferredGlobalScaleRoot"
-          :global-scale-display="globalScaleDisplayName"
-          :global-scale-type="globalScaleType"
-          :global-scale-enabled="globalScaleEnabled"
-          :scale-pad-count="scaleModePadCount"
-          @back="goBackToList"
-          @start-pad="onStartPad"
-          @stop-pad="onStopPad"
-          @update-pad="onUpdatePad"
-          @delete="requestDeletePad"
-          @edit="openEditDialog"
-          @preview-start="onPreviewStart"
-          @preview-stop="onPreviewStop"
-          @save-edit="saveEdit"
-          @close-edit="closeEdit"
-          @close-global-key="onCloseGlobalKey"
-          @save-global-key="saveGlobalKey"
-          @confirm-delete="confirmDeletePad"
-          @cancel-delete="cancelDeletePad"
-          @close-delete="onClosePadDeleteDialog"
-        />
-      </div>
-    </Transition>
+    <RouterView v-slot="{ Component, route: currentRoute }">
+      <Transition :name="viewTransitionName" @after-enter="onViewAfterEnter">
+        <div
+          class="view-panel"
+          :key="currentRoute.name"
+          :ref="(el) => setListPanelRef(el, currentRoute.name)"
+        >
+          <component
+            :is="Component"
+            ref="routeViewRef"
+            v-bind="routeViewProps"
+            v-on="routeViewListeners"
+          />
+        </div>
+      </Transition>
+    </RouterView>
   </div>
   <div class="toast" popover="manual" ref="midiWarningRef">
     <button
@@ -117,15 +83,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterView, useRoute, useRouter } from "vue-router";
 import { WebMidi } from "webmidi";
 import { AlertTriangle, X } from "lucide-vue-next";
 
-import BoardView from "./components/BoardView.vue";
 import MidiDialog from "./components/MidiDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
-import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
 import { useBoards } from "./composables/useBoards";
 import { useToast } from "./composables/useToast";
@@ -183,11 +147,16 @@ const router = useRouter();
 const route = useRoute();
 
 const showListView = computed(() => route.name !== "board");
+const routeBoardId = computed(() => String(route.params.boardId ?? ""));
 const viewTransitionName = ref("view-push-forward");
 const listPanelRef = ref(null);
 const savedListScroll = ref(0);
 const listScrollTargetRef = ref(null);
 const listScrollHandlerRef = ref(null);
+const boardsReady = ref(false);
+const boardIdsKey = computed(() =>
+  (allBoards.value || []).map((b) => String(b.id)).join("|"),
+);
 
 const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
@@ -196,12 +165,79 @@ const permissionPrompt = permissionPromptMidi;
 const midiDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
-const boardViewRef = ref(null);
+const routeViewRef = ref(null);
 const midiWarningRef = ref(null);
 const toastRef = ref(null);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
+
+function setListPanelRef(el, routeName) {
+  if (routeName === "list") {
+    listPanelRef.value = el;
+  } else if (listPanelRef.value === el) {
+    listPanelRef.value = null;
+  }
+}
+
+const routeViewProps = computed(() => {
+  if (route.name === "list") {
+    return {
+      boards: allBoards.value,
+      midiSupported: midiSupported.value,
+    };
+  }
+
+  return {
+    boardName: activeBoard.value?.name,
+    pads: pads.value,
+    highlightedNotes: currentlyPlayingNoteNames.value,
+    noteVelocityMap: noteVelocityMap.value,
+    padIndex: currentPadIndex.value,
+    permissionAllowed: permissionAllowed.value,
+    midiEnabled: midiEnabled.value,
+    padButtonLabelHtml,
+    padNoteLabel,
+    globalScale: globalScale.value,
+    globalScaleRoot: preferredGlobalScaleRoot.value,
+    globalScaleDisplay: globalScaleDisplayName.value,
+    globalScaleType: globalScaleType.value,
+    globalScaleEnabled: globalScaleEnabled.value,
+    scalePadCount: scaleModePadCount.value,
+  };
+});
+
+const routeViewListeners = computed(() => {
+  if (route.name === "list") {
+    return {
+      "select-board": onSelectBoard,
+      "create-board": onCreateBoard,
+      "duplicate-board": onDuplicateBoard,
+      "delete-board": onDeleteBoard,
+      "rename-board": onRenameBoard,
+      "open-info": openInfoDialog,
+      "open-midi": openMidiDialog,
+    };
+  }
+
+  return {
+    back: goBackToList,
+    "start-pad": onStartPad,
+    "stop-pad": onStopPad,
+    "update-pad": onUpdatePad,
+    delete: requestDeletePad,
+    edit: openEditDialog,
+    "preview-start": onPreviewStart,
+    "preview-stop": onPreviewStop,
+    "save-edit": saveEdit,
+    "close-edit": closeEdit,
+    "close-global-key": onCloseGlobalKey,
+    "save-global-key": saveGlobalKey,
+    "confirm-delete": confirmDeletePad,
+    "cancel-delete": cancelDeletePad,
+    "close-delete": onClosePadDeleteDialog,
+  };
+});
 
 const midiModelOutputId = ref("");
 const midiModelOutCh = ref(1);
@@ -275,7 +311,7 @@ function saveGlobalScaleSettings() {
 function openEditDialog(idx) {
   clearVisualDisplay();
   currentPadIndex.value = idx;
-  boardViewRef.value?.openEditDialog(idx);
+  routeViewRef.value?.openEditDialog?.(idx);
 }
 
 function openMidiDialog() {
@@ -333,7 +369,7 @@ function checkChangelog() {
 
 function requestDeletePad(idx) {
   deleteConfirmIndex.value = idx;
-  boardViewRef.value?.openPadDeleteDialog();
+  routeViewRef.value?.openPadDeleteDialog?.();
 }
 
 function resetDeleteDialogState() {
@@ -341,7 +377,7 @@ function resetDeleteDialogState() {
 }
 
 function cancelDeletePad() {
-  boardViewRef.value?.closePadDeleteDialog();
+  routeViewRef.value?.closePadDeleteDialog?.();
   resetDeleteDialogState();
 }
 
@@ -352,7 +388,7 @@ function onClosePadDeleteDialog() {
 function confirmDeletePad() {
   const idx = deleteConfirmIndex.value;
   if (typeof idx !== "number" || idx < 0 || idx >= pads.value.length) {
-    boardViewRef.value?.closePadDeleteDialog();
+    routeViewRef.value?.closePadDeleteDialog?.();
     resetDeleteDialogState();
     return;
   }
@@ -362,7 +398,7 @@ function confirmDeletePad() {
   }
   pads.value.splice(idx, 1, createDefaultPad());
   savePads();
-  boardViewRef.value?.closePadDeleteDialog();
+  routeViewRef.value?.closePadDeleteDialog?.();
   resetDeleteDialogState();
 }
 
@@ -428,11 +464,16 @@ function saveGlobalKey({ scale, type, enabled }) {
 
 // Board management handlers
 function onSelectBoard(boardId) {
-  savedListScroll.value = getListScrollTarget()?.scrollTop ?? 0;
+  const nextId = String(boardId ?? "");
+  if (!nextId) return;
+  if (route.name === "board" && routeBoardId.value === nextId) return;
+  savedListScroll.value =
+    getListScrollTarget()?.scrollTop ?? savedListScroll.value;
   router.push({ name: "board", params: { boardId } });
 }
 
 function goBackToList() {
+  if (route.name === "list") return;
   router.push({ name: "list" });
 }
 
@@ -465,10 +506,7 @@ function onDuplicateBoard(boardId) {
 function onDeleteBoard(boardId) {
   deleteBoard(boardId);
 
-  if (
-    route.name === "board" &&
-    String(route.params.boardId) === String(boardId)
-  ) {
+  if (route.name === "board" && routeBoardId.value === String(boardId)) {
     if (!allBoards.value.length) {
       router.replace({ name: "list" });
       return;
@@ -487,27 +525,30 @@ function onDeleteBoard(boardId) {
 }
 
 function syncBoardFromRoute() {
+  if (!boardsReady.value) return;
   if (route.name !== "board") return;
 
-  const routeBoardId = String(route.params.boardId ?? "");
-  if (!routeBoardId) {
+  const currentRouteBoardId = routeBoardId.value;
+  if (!currentRouteBoardId) {
     router.replace({ name: "list" });
     return;
   }
 
   const ids = (allBoards.value || []).map((b) => String(b.id));
-  if (!ids.includes(routeBoardId)) {
+  if (!ids.includes(currentRouteBoardId)) {
     if (!ids.length) {
       router.replace({ name: "list" });
       return;
     }
     const fallbackId = String(activeBoard.value?.id || ids[0]);
-    router.replace({ name: "board", params: { boardId: fallbackId } });
+    if (fallbackId !== currentRouteBoardId) {
+      router.replace({ name: "board", params: { boardId: fallbackId } });
+    }
     return;
   }
 
-  if (String(activeBoard.value?.id ?? "") !== routeBoardId) {
-    setActiveBoard(routeBoardId);
+  if (String(activeBoard.value?.id ?? "") !== currentRouteBoardId) {
+    setActiveBoard(currentRouteBoardId);
   }
   loadActiveBoardState();
 }
@@ -594,7 +635,7 @@ onMounted(() => {
 
   // Load boards (handles migration from legacy format)
   loadBoards();
-  syncBoardFromRoute();
+  boardsReady.value = true;
 
   checkChangelog();
 
@@ -616,11 +657,11 @@ watch(
 );
 
 watch(
-  () => [route.name, route.params.boardId, allBoards.value.length],
+  () => [route.name, routeBoardId.value, boardIdsKey.value],
   () => {
     syncBoardFromRoute();
   },
-  { flush: "post" },
+  { flush: "post", immediate: true },
 );
 
 onBeforeUnmount(() => {
@@ -770,7 +811,7 @@ function saveEdit(snapshot) {
 }
 
 function closeEdit() {
-  boardViewRef.value?.closeEditDialog();
+  routeViewRef.value?.closeEditDialog?.();
 }
 
 // Build chord label and notes from pad state

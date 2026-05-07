@@ -33,7 +33,6 @@
       </button>
     </div>
   </div>
-
   <div class="board-list">
     <div
       v-for="board in props.boards"
