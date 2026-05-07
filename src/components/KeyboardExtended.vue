@@ -41,7 +41,7 @@
 <script setup>
 import { computed } from "vue";
 import { Note } from "@tonaljs/tonal";
-import { pcToKeyToken, normalizePcOct } from "../utils/music";
+import { normalizePcOct } from "../utils/music";
 
 const props = defineProps({
   highlightedNotes: { type: Array, default: () => [] },

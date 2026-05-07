@@ -28,7 +28,10 @@ export function useBoards() {
         boards.value = JSON.parse(stored);
         // Restore which board was active
         const storedActiveId = localStorage.getItem(ACTIVE_BOARD_KEY);
-        if (storedActiveId && boards.value.some((b) => b.id === storedActiveId)) {
+        if (
+          storedActiveId &&
+          boards.value.some((b) => b.id === storedActiveId)
+        ) {
           activeBoardId.value = storedActiveId;
         } else if (boards.value.length > 0) {
           activeBoardId.value = boards.value[0].id;
@@ -65,6 +68,8 @@ export function useBoards() {
     try {
       if (activeBoardId.value) {
         localStorage.setItem(ACTIVE_BOARD_KEY, activeBoardId.value);
+      } else {
+        localStorage.removeItem(ACTIVE_BOARD_KEY);
       }
     } catch (error) {
       console.error("Failed to save active board ID:", error);
@@ -116,6 +121,9 @@ export function useBoards() {
       // If deleted board was active, switch to first remaining board
       if (activeBoardId.value === boardId && boards.value.length > 0) {
         setActiveBoard(boards.value[0].id);
+      } else if (boards.value.length === 0) {
+        activeBoardId.value = null;
+        saveActiveBoardId();
       }
     }
   };

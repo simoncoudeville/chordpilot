@@ -51,14 +51,23 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import { X, Sparkles } from "lucide-vue-next";
+import { X } from "lucide-vue-next";
 import { changelog } from "../data/changelog";
 
 const emit = defineEmits(["close", "dismiss"]);
 
 const dlg = ref(null);
 
-const latest = computed(() => changelog[0]);
+const latest = computed(
+  () =>
+    changelog[0] || {
+      version: "",
+      date: "",
+      title: "",
+      description: "",
+      features: [],
+    },
+);
 
 function formatDate(dateStr) {
   try {

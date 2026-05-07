@@ -76,7 +76,13 @@ const props = defineProps({
   padNoteLabel: { type: Function, required: false, default: () => "" },
 });
 
-const emit = defineEmits(["start-pad", "stop-pad", "update-pad", "edit"]);
+const emit = defineEmits([
+  "start-pad",
+  "stop-pad",
+  "update-pad",
+  "edit",
+  "delete",
+]);
 
 // Track which pad indices are currently pressed to avoid :active delay on mobile
 import { ref } from "vue";

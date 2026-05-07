@@ -19,6 +19,32 @@ export function useMidi() {
 
   // Track if MIDI was connected in the last session
   const midiWasConnected = ref(false);
+  let listenersAttached = false;
+
+  function handlePortConnected(e) {
+    logMsg(`Connected: ${e.port.type} – ${e.port.name}`);
+    renderDevices();
+    applySavedMidiSettings();
+  }
+
+  function handlePortDisconnected(e) {
+    logMsg(`Disconnected: ${e.port.type} – ${e.port.name}`);
+    renderDevices();
+  }
+
+  function attachMidiListeners() {
+    if (listenersAttached) return;
+    WebMidi.addListener("connected", handlePortConnected);
+    WebMidi.addListener("disconnected", handlePortDisconnected);
+    listenersAttached = true;
+  }
+
+  function detachMidiListeners() {
+    if (!listenersAttached) return;
+    WebMidi.removeListener("connected", handlePortConnected);
+    WebMidi.removeListener("disconnected", handlePortDisconnected);
+    listenersAttached = false;
+  }
 
   function logMsg(msg) {
     // noop placeholder; caller can override by passing custom logger if needed
@@ -85,7 +111,7 @@ export function useMidi() {
           outputId: selectedOutputId.value,
           channel: selectedOutCh.value,
           wasConnected: midiEnabled.value,
-        })
+        }),
       );
     } catch (e) {
       console.warn("Failed to save MIDI settings:", e);
@@ -114,15 +140,7 @@ export function useMidi() {
       status.value = "MIDI connected.";
       logMsg("MIDI connected");
       await updatePermissionStatus(onPermissionUpdate);
-      WebMidi.addListener("connected", (e) => {
-        logMsg(`Connected: ${e.port.type} – ${e.port.name}`);
-        renderDevices();
-        applySavedMidiSettings();
-      });
-      WebMidi.addListener("disconnected", (e) => {
-        logMsg(`Disconnected: ${e.port.type} – ${e.port.name}`);
-        renderDevices();
-      });
+      attachMidiListeners();
       renderDevices();
       applySavedMidiSettings();
       // Save that MIDI is now connected
@@ -135,6 +153,7 @@ export function useMidi() {
 
   async function disconnectMidi() {
     try {
+      detachMidiListeners();
       if (WebMidi?.enabled) {
         WebMidi.disable();
       }

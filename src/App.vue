@@ -118,73 +118,12 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import {
-  Music2,
-  BadgeInfo,
-  InfoIcon,
-  AlertTriangle,
-  OctagonAlert,
-  X,
-} from "lucide-vue-next";
-import { Icon } from "lucide-vue-next";
-import { ArrowLeft } from "lucide-vue-next";
-
-// Icon data for custom Midi icon
-const Midi = [
-  [
-    "path",
-    {
-      d: "M12 18h.01",
-      key: "mhygvu",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M16.24 16.24h.01",
-      key: "1x84wr",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M18 12h.01",
-      key: "yjnet6",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M6 12h.01",
-      key: "c2rlol",
-    },
-  ],
-  [
-    "path",
-    {
-      d: "M7.76 16.24h.01",
-      key: "11ncrc",
-    },
-  ],
-  [
-    "circle",
-    {
-      cx: "12",
-      cy: "12",
-      r: "10",
-      key: "1mglay",
-    },
-  ],
-];
+import { AlertTriangle, X } from "lucide-vue-next";
 
 import BoardView from "./components/BoardView.vue";
-import PadGrid from "./components/PadGrid.vue";
-import EditDialog from "./components/EditDialog.vue";
 import MidiDialog from "./components/MidiDialog.vue";
-import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
-import PadDeleteDialog from "./components/PadDeleteDialog.vue";
 import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
 import { useBoards } from "./composables/useBoards";
@@ -203,6 +142,7 @@ import {
   formatScaleName,
   simplifyNoteName,
 } from "./utils/enharmonic";
+import { qualityForScaleDegree } from "./utils/scaleHarmony";
 import { changelog } from "./data/changelog";
 
 const {
@@ -220,8 +160,6 @@ const {
   updatePermissionStatus,
   renderDevices,
   getSelectedChannel,
-  applySavedMidiSettings,
-  hasValidSavedMidiSettings,
   saveMidiSettings,
 } = useMidi();
 
@@ -251,12 +189,9 @@ const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
 const permissionPrompt = permissionPromptMidi;
 
-const editDialogRef = ref(null);
 const midiDialogRef = ref(null);
-const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
-const padDeleteDialogRef = ref(null);
 const boardViewRef = ref(null);
 const midiWarningRef = ref(null);
 const toastRef = ref(null);
@@ -351,11 +286,6 @@ function closeMidiDialog() {
   midiDialogRef.value?.close?.();
 }
 
-function openGlobalKeyDialog() {
-  clearVisualDisplay();
-  boardViewRef.value?.openGlobalKeyDialog();
-}
-
 function onCloseGlobalKey() {}
 
 function openInfoDialog() {
@@ -418,7 +348,7 @@ function onClosePadDeleteDialog() {
 function confirmDeletePad() {
   const idx = deleteConfirmIndex.value;
   if (typeof idx !== "number" || idx < 0 || idx >= pads.value.length) {
-    padDeleteDialogRef.value?.close?.();
+    boardViewRef.value?.closePadDeleteDialog();
     resetDeleteDialogState();
     return;
   }
@@ -781,29 +711,8 @@ function closeEdit() {
 }
 
 // Build chord label and notes from pad state
-function semitoneDistance(pcFrom, pcTo) {
-  const base = Note.midi(`${pcFrom}4`) ?? 60;
-  let target = Note.midi(`${pcTo}4`) ?? base;
-  while (target < base) target += 12;
-  return (target - base) % 12;
-}
-function qualityFromTriad(triad, rootPc) {
-  const [r, t, f] = triad;
-  if (!r || !t || !f) return "";
-  const third = semitoneDistance(rootPc, t);
-  const fifth = semitoneDistance(rootPc, f);
-  if (third === 3 && fifth === 6) return "dim";
-  if (third === 4 && fifth === 8) return "aug";
-  if (third === 3 && fifth === 7) return "m";
-  if (third === 4 && fifth === 7) return "";
-  return "";
-}
 function qualityForDegree(index) {
-  const s = Array.isArray(globalScaleNotes.value) ? globalScaleNotes.value : [];
-  if (s.length < 3) return "";
-  const i = index % s.length;
-  const triad = [s[i], s[(i + 2) % s.length], s[(i + 4) % s.length]];
-  return qualityFromTriad(triad, s[i]);
+  return qualityForScaleDegree(globalScaleNotes.value, index);
 }
 
 function buildChordSymbol(rootPc, type, extension) {
@@ -1350,32 +1259,4 @@ function onPreviewStop() {
     activePreviewNotes.value = [];
   }
 }
-
-// pcToKeyToken imported from ./utils/music
-
-// Currently playing note names (with octaves) from pads.
-// When no pads are active, show the last played chord.
-const activeNoteNames = computed(() => {
-  const fromPads = Object.values(activePadNotes).flatMap((arr) =>
-    Array.isArray(arr) ? arr : [],
-  );
-  // If no pads are currently playing, show the last played chord
-  if (fromPads.length === 0 && lastPlayedNotes.value.length > 0) {
-    return simplifyNoteList(lastPlayedNotes.value);
-  }
-  return simplifyNoteList(fromPads);
-});
-
-// Human-friendly now playing line
-const nowPlayingHtml = computed(() => {
-  const notes = activeNoteNames.value.slice();
-  if (!notes.length) return "";
-  // Sort ascending by MIDI for readability
-  notes.sort((a, b) => (Note.midi(a) ?? 0) - (Note.midi(b) ?? 0));
-  // Format each note with enharmonic preference based on global key
-  const formatted = notes.map((n) =>
-    formatNoteName(n, preferredGlobalScaleRoot.value, globalScaleType.value),
-  );
-  return formatted.join(" ");
-});
 </script>

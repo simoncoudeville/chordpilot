@@ -208,7 +208,6 @@
 <script setup>
 import { ref, nextTick } from "vue";
 import {
-  BadgeInfo,
   Copy,
   EllipsisVertical,
   Icon,
@@ -347,12 +346,17 @@ function closeDeleteDialog() {
 function formatDate(timestamp) {
   const date = new Date(timestamp);
   const now = new Date();
-  const diff = now - date;
-  const oneDay = 86400000;
+  if (Number.isNaN(date.getTime())) return "";
 
-  if (diff < oneDay && now.getDate() === date.getDate()) return "today";
-  if (diff < oneDay * 2 && now.getDate() - date.getDate() === 1)
-    return "yesterday";
+  const toLocalDayStart = (d) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const oneDay = 86400000;
+  const dayDiff = Math.round(
+    (toLocalDayStart(now) - toLocalDayStart(date)) / oneDay,
+  );
+
+  if (dayDiff === 0) return "today";
+  if (dayDiff === 1) return "yesterday";
 
   return date.toLocaleDateString("en-US", {
     month: "short",
