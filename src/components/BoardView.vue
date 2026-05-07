@@ -41,7 +41,10 @@
     @edit="(idx) => $emit('edit', idx)"
   />
   <div class="bottom">
-    <KeyboardExtended :highlighted-notes="highlightedNotes" />
+    <KeyboardExtended
+      :highlighted-notes="highlightedNotes"
+      :note-velocity-map="noteVelocityMap"
+    />
   </div>
 
   <EditDialog
@@ -91,6 +94,10 @@ const props = defineProps({
   highlightedNotes: {
     type: Array,
     default: () => [],
+  },
+  noteVelocityMap: {
+    type: Object,
+    default: () => ({}),
   },
   padIndex: Number,
   permissionAllowed: Boolean,

@@ -20,6 +20,7 @@
           :board-name="activeBoard?.name"
           :pads="pads"
           :highlighted-notes="currentlyPlayingNoteNames"
+          :note-velocity-map="noteVelocityMap"
           :pad-index="currentPadIndex"
           :permission-allowed="permissionAllowed"
           :midi-enabled="midiEnabled"
@@ -1031,12 +1032,20 @@ function padNoteLabel(pad) {
 
 import { reactive } from "vue";
 const activePadNotes = reactive({});
+const activeNoteVelocities = reactive({}); // {[padIdx]: {[noteStr]: velocity}}
 
 const padTimers = reactive({});
 const padSchedules = reactive({});
+const padVisualReleaseTimers = reactive({});
+const VISUAL_RELEASE_MS = 120;
 
 function onStartPad(idx, e, coords) {
   try {
+    if (padVisualReleaseTimers[idx]) {
+      clearTimeout(padVisualReleaseTimers[idx]);
+      padVisualReleaseTimers[idx] = null;
+    }
+
     // Clear any existing state for this pad
     if (padTimers[idx]) {
       padTimers[idx].forEach((id) => clearTimeout(id));
@@ -1082,7 +1091,8 @@ function onStartPad(idx, e, coords) {
       processAxis(coords.y, settings.y);
     }
 
-    activePadNotes[idx] = notes.slice();
+    // Keep current highlights until explicit release to avoid flicker on rapid retriggers.
+    if (!Array.isArray(activePadNotes[idx])) activePadNotes[idx] = [];
     lastPlayedNotes.value = notes.slice(); // Remember last played chord
 
     const now = WebMidi.time;
@@ -1137,6 +1147,15 @@ function onStartPad(idx, e, coords) {
         try {
           // Use precise MIDI time
           ch.playNote(n, { attack: vel, time: noteTime });
+          if (!Array.isArray(activePadNotes[idx])) activePadNotes[idx] = [];
+          if (!activePadNotes[idx].includes(n)) {
+            activePadNotes[idx] = [...activePadNotes[idx], n];
+          }
+          if (!activeNoteVelocities[idx]) activeNoteVelocities[idx] = {};
+          activeNoteVelocities[idx] = {
+            ...activeNoteVelocities[idx],
+            [n]: vel,
+          };
           // Track that we sent this note to the driver
           padSchedules[idx].push({ note: n, time: noteTime });
         } catch {}
@@ -1244,7 +1263,14 @@ function onStopPad(idx) {
   } catch (e) {
     console.error("Failed to stop pad:", e);
   } finally {
-    activePadNotes[idx] = [];
+    if (padVisualReleaseTimers[idx]) {
+      clearTimeout(padVisualReleaseTimers[idx]);
+    }
+    padVisualReleaseTimers[idx] = setTimeout(() => {
+      activePadNotes[idx] = [];
+      activeNoteVelocities[idx] = {};
+      padVisualReleaseTimers[idx] = null;
+    }, VISUAL_RELEASE_MS);
     padSchedules[idx] = [];
   }
 }
@@ -1262,6 +1288,20 @@ const currentlyPlayingNoteNames = computed(() => {
     ? activePreviewNotes.value
     : [];
   return simplifyNoteList([...fromPads, ...fromPreview]);
+});
+
+// Velocity map for currently playing notes (used for visual brightness on keyboard)
+const noteVelocityMap = computed(() => {
+  const map = {};
+  for (const padVels of Object.values(activeNoteVelocities)) {
+    if (padVels && typeof padVels === "object") {
+      Object.assign(map, padVels);
+    }
+  }
+  for (const n of activePreviewNotes.value || []) {
+    map[n] = DEFAULT_ATTACK;
+  }
+  return map;
 });
 
 function onPreviewStart(payload) {

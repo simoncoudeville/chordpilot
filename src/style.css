@@ -354,7 +354,6 @@ dialog {
   transition: all var(--dialog-open-duration, 0.15s) ease;
   transition-behavior: allow-discrete;
   overflow-x: hidden;
-  /* box-shadow: 0 0 0 1px var(--color-border); */
 
   &::backdrop {
     transition: inherit;
@@ -636,11 +635,21 @@ dialog:open {
   position: absolute;
   top: 0;
   background: var(--color-layer-3);
-  transition: background-color 0.15s ease;
+  transition: background-color 0.1s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
 }
 
 .key-played {
-  background: var(--color-text);
+  &::after {
+    background-color: hsl(
+      0 0% var(--key-velocity, 95%)
+    ); /* between 56% and 96% opacity for velocity visualization */
+  }
 }
 
 /* White keys (7 stripes) */
