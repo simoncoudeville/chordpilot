@@ -20,6 +20,7 @@ export function useMidi() {
   // Track if MIDI was connected in the last session
   const midiWasConnected = ref(false);
   let listenersAttached = false;
+  let permissionStatusRef = null;
 
   function handlePortConnected(e) {
     logMsg(`Connected: ${e.port.type} – ${e.port.name}`);
@@ -131,11 +132,13 @@ export function useMidi() {
 
   async function connectMidi({ onPermissionUpdate } = {}) {
     try {
-      status.value = "Requesting MIDI access…";
-      // Explicitly disable SysEx to avoid elevated permission prompts and
-      // suppress WebMidi's advisory warning about unspecified MIDIOptions.
-      // Note: Browsers may still show a generic MIDI permission prompt.
-      await WebMidi.enable({ sysex: false, software: false });
+      if (!WebMidi.enabled) {
+        status.value = "Requesting MIDI access…";
+        // Explicitly disable SysEx to avoid elevated permission prompts and
+        // suppress WebMidi's advisory warning about unspecified MIDIOptions.
+        // Note: Browsers may still show a generic MIDI permission prompt.
+        await WebMidi.enable({ sysex: false, software: false });
+      }
       midiEnabled.value = true;
       status.value = "MIDI connected.";
       logMsg("MIDI connected");
@@ -180,6 +183,10 @@ export function useMidi() {
         name: "midi",
         sysex: false,
       });
+      if (permissionStatusRef) {
+        permissionStatusRef.onchange = null;
+      }
+      permissionStatusRef = statusObj;
       permission.value = statusObj.state;
       statusObj.onchange = () => {
         permission.value = statusObj.state;

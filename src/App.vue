@@ -1057,14 +1057,9 @@ function onStartPad(idx, e, coords) {
           // Use precise MIDI time
           ch.playNote(n, { attack: vel, time: noteTime });
           if (!Array.isArray(activePadNotes[idx])) activePadNotes[idx] = [];
-          if (!activePadNotes[idx].includes(n)) {
-            activePadNotes[idx] = [...activePadNotes[idx], n];
-          }
+          activePadNotes[idx].push(n);
           if (!activeNoteVelocities[idx]) activeNoteVelocities[idx] = {};
-          activeNoteVelocities[idx] = {
-            ...activeNoteVelocities[idx],
-            [n]: vel,
-          };
+          activeNoteVelocities[idx][n] = vel;
           // Track that we sent this note to the driver
           padSchedules[idx].push({ note: n, time: noteTime });
         } catch {}

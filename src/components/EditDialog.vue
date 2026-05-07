@@ -441,16 +441,15 @@ const ROOT_PCS_SHARP = [
   "A#",
   "B",
 ];
-const rootOptions = computed(() => {
-  return ROOT_PCS_SHARP.map((pc) => {
-    if (pc.includes("#")) {
-      const flat = Note.enharmonic(pc);
-      // Display both: "C#/Db"
-      return { value: flat, label: `${pc}/${flat}` };
-    }
-    return { value: pc, label: pc };
-  });
+const ROOT_OPTIONS = ROOT_PCS_SHARP.map((pc) => {
+  if (pc.includes("#")) {
+    const flat = Note.enharmonic(pc);
+    // Display both: "C#/Db"
+    return { value: flat, label: `${pc}/${flat}` };
+  }
+  return { value: pc, label: pc };
 });
+const rootOptions = ROOT_OPTIONS;
 const FREE_TYPE_OPTIONS = Object.freeze([
   { value: "major", label: "Major" },
   { value: "minor", label: "Minor" },
