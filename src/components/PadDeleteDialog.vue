@@ -3,8 +3,19 @@
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <h2 class="dialog-title">Remove chord?</h2>
-        <button type="button" class="dialog-close" @click="onCancel" aria-label="Close">
-          <X class="dialog-close-icon" aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
+        <button
+          type="button"
+          class="dialog-close"
+          @click="onCancel"
+          aria-label="Close"
+        >
+          <X
+            class="dialog-close-icon"
+            aria-hidden="true"
+            :stroke-width="1.5"
+            :size="16"
+            :absoluteStrokeWidth="true"
+          />
           <span class="sr-only">Close</span>
         </button>
       </div>
@@ -13,7 +24,7 @@
       </div>
       <div class="dialog-buttons">
         <button class="button" type="button" @click="onCancel">Cancel</button>
-        <button class="button primary" type="button" @click="onConfirm">
+        <button class="button button-primary" type="button" @click="onConfirm">
           Remove chord
         </button>
       </div>

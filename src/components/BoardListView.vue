@@ -1,7 +1,7 @@
 <template>
-  <div class="top">
+  <div class="app-bar">
     <h1>Chordboard</h1>
-    <div class="top-buttons">
+    <div class="app-bar-actions">
       <button
         class="icon-button"
         type="button"
@@ -42,8 +42,10 @@
       @click="selectBoard(board.id)"
     >
       <div class="board-row-info">
-        <h2>{{ board.name }}</h2>
-        <p class="color-meta">{{ formatDate(board.createdAt) }}</p>
+        <h2 class="board-row-title">{{ board.name }}</h2>
+        <p class="board-row-meta color-meta">
+          {{ formatDate(board.createdAt) }}
+        </p>
       </div>
       <button
         class="icon-button"
@@ -158,7 +160,11 @@
         <button class="button" type="button" @click="closeRenameDialog">
           Cancel
         </button>
-        <button class="button primary" type="button" @click="confirmRename">
+        <button
+          class="button button-primary"
+          type="button"
+          @click="confirmRename"
+        >
           Rename
         </button>
       </div>
@@ -197,7 +203,11 @@
         <button class="button" type="button" @click="closeDeleteDialog">
           Cancel
         </button>
-        <button class="button primary" type="button" @click="confirmDelete">
+        <button
+          class="button button-primary"
+          type="button"
+          @click="confirmDelete"
+        >
           Delete
         </button>
       </div>

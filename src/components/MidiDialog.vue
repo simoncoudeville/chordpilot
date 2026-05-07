@@ -28,7 +28,7 @@
       <!-- State machine per design -->
       <template v-if="!midiSupported">
         <div class="dialog-content">
-          <p class="color-warning flex items-center gap-1">
+          <p class="color-warning flex align-center gap-1">
             Web MIDI not supported
           </p>
           <p class="color-meta">
@@ -40,7 +40,7 @@
         <!-- 1) Permission required -->
         <template v-if="permissionOnly && permission !== 'denied'">
           <div class="dialog-content">
-            <p class="color-warning flex items-center gap-1">
+            <p class="color-warning flex align-center gap-1">
               MIDI permission required
             </p>
             <p class="color-meta">
@@ -51,7 +51,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button block primary"
+              class="button button-block primary"
               @click="$emit('request-permission')"
             >
               Allow MIDI
@@ -62,7 +62,7 @@
         <!-- 1.1) Permission denied -->
         <template v-else-if="permissionOnly && permission === 'denied'">
           <div class="dialog-content">
-            <p class="color-warning flex items-center gap-1">MIDI denied</p>
+            <p class="color-warning flex align-center gap-1">MIDI denied</p>
             <p class="color-meta">
               MIDI permission was blocked. To grant access again, change this
               site's MIDI permission in your browser settings, then reopen this
@@ -74,7 +74,7 @@
         <!-- 1.2) Permission granted but not connected yet -->
         <template v-else-if="permission === 'granted' && !midiEnabled">
           <div class="dialog-content">
-            <p class="color-warning flex items-center gap-1">
+            <p class="color-warning flex align-center gap-1">
               MIDI allowed but not enabled
             </p>
             <p class="color-meta">Enable MIDI to continue.</p>
@@ -82,7 +82,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button block primary"
+              class="button button-block primary"
               @click="enableMidiWithTransition"
             >
               Enable MIDI
@@ -93,7 +93,7 @@
         <!-- 2) Connected but no devices detected -->
         <template v-else-if="midiEnabled && outputs.length === 0">
           <div class="dialog-content">
-            <p class="color-warning flex items-center gap-1">
+            <p class="color-warning flex align-center gap-1">
               No MIDI devices detected
             </p>
             <p class="color-meta">
@@ -103,7 +103,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button primary block"
+              class="button button-primary button-block"
               @click="$emit('rescan')"
             >
               Scan for devices
@@ -137,7 +137,7 @@
               Cancel
             </button>
             <button
-              class="button primary"
+              class="button button-primary"
               type="button"
               @click="onSave"
               :disabled="!effectiveDirty"
@@ -158,7 +158,7 @@
           <div class="dialog-content">
             <button
               type="button"
-              class="button block primary"
+              class="button button-block primary"
               @click="$emit('rescan')"
             >
               Scan for devices
@@ -190,7 +190,7 @@
               Cancel
             </button>
             <button
-              class="button primary"
+              class="button button-primary"
               type="button"
               @click="onSave"
               :disabled="!effectiveDirty"
@@ -256,7 +256,7 @@ const outChProxy = computed({
 
 // Step 1: Permission-only mode when MIDI access is not granted and not enabled yet
 const permissionOnly = computed(
-  () => props.permission !== "granted" && !props.midiEnabled
+  () => props.permission !== "granted" && !props.midiEnabled,
 );
 
 function open() {
@@ -307,7 +307,7 @@ watch(
     }
     if (internalDirty.value) return;
     syncBaselineToProps();
-  }
+  },
 );
 
 function onSave() {

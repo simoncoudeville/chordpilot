@@ -51,7 +51,7 @@
       </div>
     </Transition>
   </div>
-  <div class="toast warning" popover="manual" ref="midiWarningRef">
+  <div class="toast" popover="manual" ref="midiWarningRef">
     <button
       class="button-warning"
       type="button"

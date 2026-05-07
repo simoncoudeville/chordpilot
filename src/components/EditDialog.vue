@@ -227,7 +227,7 @@
       <div class="dialog-buttons">
         <button class="button" type="button" @click="onClose">Cancel</button>
         <button
-          class="button primary"
+          class="button button-primary"
           type="button"
           @click="$emit('save', buildPadSnapshot())"
           :disabled="!isDirty"

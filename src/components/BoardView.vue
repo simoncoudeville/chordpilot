@@ -1,5 +1,5 @@
 <template>
-  <div class="top detail-top">
+  <div class="app-bar app-bar-center">
     <button
       class="icon-button"
       type="button"
@@ -13,7 +13,7 @@
         :absoluteStrokeWidth="true"
       />
     </button>
-    <h2 class="board-title">{{ boardName }}</h2>
+    <h2 class="app-bar-title">{{ boardName }}</h2>
     <button
       class="icon-button"
       type="button"

@@ -95,7 +95,7 @@
       <div class="dialog-buttons">
         <button class="button" type="button" @click="onClose">Cancel</button>
         <button
-          class="button primary"
+          class="button button-primary"
           type="button"
           @click="onSave"
           :disabled="!isDirty"
@@ -156,14 +156,14 @@ const scaleTypes = computed(() =>
   usefulScaleTypes.map((name) => ({
     value: name,
     label: name.replace(/-/g, " "),
-  }))
+  })),
 );
 
 const isDirty = computed(
   () =>
     scaleLocal.value !== props.modelScale ||
     typeLocal.value !== props.modelType ||
-    enabledLocal.value !== props.modelEnabled
+    enabledLocal.value !== props.modelEnabled,
 );
 
 function open() {
