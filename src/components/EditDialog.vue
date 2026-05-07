@@ -56,7 +56,7 @@
               :stroke-width="1.5"
               :absoluteStrokeWidth="true"
             />
-            Global scale: <span>{{ globalScaleDisplay }}</span>
+            Board scale: <span>{{ globalScaleDisplay }}</span>
           </p>
         </div>
       </template>

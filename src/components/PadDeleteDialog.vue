@@ -3,6 +3,10 @@
     <form class="dialog-body" method="dialog" @submit.prevent>
       <div class="dialog-top">
         <h2 class="dialog-title">Remove chord?</h2>
+        <button type="button" class="dialog-close" @click="onCancel" aria-label="Close">
+          <X class="dialog-close-icon" aria-hidden="true" :stroke-width="1.5" :size="16" :absoluteStrokeWidth="true" />
+          <span class="sr-only">Close</span>
+        </button>
       </div>
       <div class="dialog-content">
         <p class="color-meta">{{ props.message }}</p>
@@ -19,6 +23,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { X } from "lucide-vue-next";
 
 const props = defineProps({
   message: {

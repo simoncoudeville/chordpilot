@@ -1,68 +1,67 @@
 <template>
-  <div class="top">
-    <Keyboard
-      :active-key-set="activeKeySet"
-      :now-playing-html="nowPlayingHtml"
-    />
-    <div class="top-buttons">
-      <button
-        class="icon-button midi"
-        type="button"
-        @click="openMidiDialog"
-        :disabled="!midiSupported"
-        :title="!midiSupported ? 'Your browser does not support Web MIDI' : ''"
-        aria-label="MIDI settings"
-      >
-        <Icon
-          aria-hidden="true"
-          :iconNode="Midi"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
+  <div class="view-shell">
+    <Transition :name="viewTransitionName" @after-enter="onViewAfterEnter">
+      <div v-if="showListView" key="list" class="view-panel" ref="listPanelRef">
+        <BoardListView
+          :boards="allBoards"
+          :midi-supported="midiSupported"
+          @select-board="onSelectBoard"
+          @create-board="onCreateBoard"
+          @duplicate-board="onDuplicateBoard"
+          @delete-board="onDeleteBoard"
+          @rename-board="onRenameBoard"
+          @open-info="openInfoDialog"
+          @open-midi="openMidiDialog"
         />
-      </button>
-      <button
-        class="icon-button scale"
-        type="button"
-        @click="openGlobalKeyDialog"
-        aria-label="Global scale settings"
-      >
-        <Music2
-          aria-hidden="true"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
+      </div>
+      <div v-else key="detail" class="view-panel">
+        <BoardView
+          ref="boardViewRef"
+          :board-name="activeBoard?.name"
+          :pads="pads"
+          :highlighted-notes="currentlyPlayingNoteNames"
+          :note-velocity-map="noteVelocityMap"
+          :pad-index="currentPadIndex"
+          :permission-allowed="permissionAllowed"
+          :midi-enabled="midiEnabled"
+          :pad-button-label-html="padButtonLabelHtml"
+          :pad-note-label="padNoteLabel"
+          :global-scale="globalScale"
+          :global-scale-root="preferredGlobalScaleRoot"
+          :global-scale-display="globalScaleDisplayName"
+          :global-scale-type="globalScaleType"
+          :global-scale-enabled="globalScaleEnabled"
+          :scale-pad-count="scaleModePadCount"
+          @back="goBackToList"
+          @start-pad="onStartPad"
+          @stop-pad="onStopPad"
+          @update-pad="onUpdatePad"
+          @delete="requestDeletePad"
+          @edit="openEditDialog"
+          @preview-start="onPreviewStart"
+          @preview-stop="onPreviewStop"
+          @save-edit="saveEdit"
+          @close-edit="closeEdit"
+          @close-global-key="onCloseGlobalKey"
+          @save-global-key="saveGlobalKey"
+          @confirm-delete="confirmDeletePad"
+          @cancel-delete="cancelDeletePad"
+          @close-delete="onClosePadDeleteDialog"
         />
-      </button>
-      <button
-        class="icon-button"
-        type="button"
-        @click="openInfoDialog"
-        aria-label="App information"
-      >
-        <BadgeInfo
-          aria-hidden="true"
-          :stroke-width="1.5"
-          :size="20"
-          :absoluteStrokeWidth="true"
-        />
-      </button>
-    </div>
+      </div>
+    </Transition>
   </div>
-  <PadGrid
-    :pads="pads"
-    :permission-allowed="permissionAllowed"
-    :midi-enabled="midiEnabled"
-    :pad-button-label-html="padButtonLabelHtml"
-    @start-pad="onStartPad"
-    @stop-pad="onStopPad"
-    @update-pad="onUpdatePad"
-    @delete="requestDeletePad"
-    @edit="openEditDialog"
-  />
-  <div v-if="showMidiWarningButton" class="warning">
-    <button class="button-warning" type="button" @click="openMidiDialog">
-      <OctagonAlert
+  <div class="toast warning" popover="manual" ref="midiWarningRef">
+    <button
+      class="button-warning"
+      type="button"
+      @click="
+        () => {
+          openMidiDialog();
+        }
+      "
+    >
+      <AlertTriangle
         aria-hidden="true"
         :stroke-width="1.5"
         :size="16"
@@ -70,22 +69,21 @@
       />
       {{ midiWarningLabel }}
     </button>
+    <button
+      class="popover-close"
+      type="button"
+      @click="closeMidiWarning"
+      aria-label="Close"
+    >
+      <X
+        aria-hidden="true"
+        :stroke-width="1.5"
+        :size="16"
+        :absoluteStrokeWidth="true"
+      />
+      <span class="sr-only">Close</span>
+    </button>
   </div>
-  <EditDialog
-    ref="editDialogRef"
-    :pad-index="currentPadIndex"
-    :pad-state="pads[currentPadIndex]"
-    :global-scale-root="preferredGlobalScaleRoot"
-    :global-scale-display="globalScaleDisplayName"
-    :global-scale-type="globalScaleType"
-    :global-scale-enabled="globalScaleEnabled"
-    :permission-allowed="permissionAllowed"
-    :midi-enabled="midiEnabled"
-    @preview-start="onPreviewStart"
-    @preview-stop="onPreviewStop"
-    @save="saveEdit"
-    @close="closeEdit"
-  />
   <MidiDialog
     ref="midiDialogRef"
     :midi-enabled="midiEnabled"
@@ -104,15 +102,6 @@
     @refresh-permission="handleRefreshPermission"
     @request-connect="handleRequestConnect"
   />
-  <GlobalKeyDialog
-    ref="globalKeyDialogRef"
-    :model-scale="globalScale"
-    :model-type="globalScaleType"
-    :model-enabled="globalScaleEnabled"
-    :scale-pad-count="scaleModePadCount"
-    @close="onCloseGlobalKey"
-    @save="saveGlobalKey"
-  />
   <InfoDialog
     ref="infoDialogRef"
     :midi-supported="midiSupported"
@@ -123,25 +112,22 @@
     @close="onCloseChangelog"
     @dismiss="onDismissChangelog"
   />
-  <FeedbackDialog
-    ref="feedbackDialogRef"
-    :feedback-url="FEEDBACK_FORM_URL"
-    @close="onCloseFeedback"
-    @dismiss="onDismissFeedback"
-  />
-  <PadDeleteDialog
-    ref="padDeleteDialogRef"
-    @confirm="confirmDeletePad"
-    @cancel="cancelDeletePad"
-    @close="onClosePadDeleteDialog"
-  />
+  <div class="toast" popover="manual" ref="toastRef">{{ toastMessage }}</div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { WebMidi } from "webmidi";
-import { Music2, BadgeInfo, OctagonAlert } from "lucide-vue-next";
+import {
+  Music2,
+  BadgeInfo,
+  InfoIcon,
+  AlertTriangle,
+  OctagonAlert,
+  X,
+} from "lucide-vue-next";
 import { Icon } from "lucide-vue-next";
+import { ArrowLeft } from "lucide-vue-next";
 
 // Icon data for custom Midi icon
 const Midi = [
@@ -191,24 +177,25 @@ const Midi = [
   ],
 ];
 
-import Keyboard from "./components/Keyboard.vue";
+import BoardView from "./components/BoardView.vue";
 import PadGrid from "./components/PadGrid.vue";
 import EditDialog from "./components/EditDialog.vue";
 import MidiDialog from "./components/MidiDialog.vue";
 import GlobalKeyDialog from "./components/GlobalKeyDialog.vue";
 import InfoDialog from "./components/InfoDialog.vue";
 import ChangelogDialog from "./components/ChangelogDialog.vue";
-import FeedbackDialog from "./components/FeedbackDialog.vue";
 import PadDeleteDialog from "./components/PadDeleteDialog.vue";
+import BoardListView from "./components/BoardListView.vue";
 import { useMidi } from "./composables/useMidi";
+import { useBoards } from "./composables/useBoards";
+import { useToast } from "./composables/useToast";
+import { createDefaultPad } from "./utils/migration";
 import { Scale, Note } from "@tonaljs/tonal";
 import {
-  DEFAULT_EXTENSION,
   normalizeChordType,
   normalizeExtension,
   buildChordDefinition,
 } from "./utils/chordSystem";
-import { pcToKeyToken } from "./utils/music";
 import {
   formatNoteName,
   formatChordSymbol,
@@ -238,6 +225,28 @@ const {
   saveMidiSettings,
 } = useMidi();
 
+const {
+  boards: allBoards,
+  activeBoard,
+  loadBoards,
+  setActiveBoard,
+  createBoard,
+  deleteBoard,
+  renameBoard,
+  duplicateBoard,
+  updateActiveBoardPads,
+  updateActiveBoardScale,
+} = useBoards();
+
+const { toastMessage } = useToast();
+
+const showListView = ref(true);
+const viewTransitionName = ref("view-push-forward");
+const listPanelRef = ref(null);
+const savedListScroll = ref(0);
+const listScrollTargetRef = ref(null);
+const listScrollHandlerRef = ref(null);
+
 const midiSupported = ref(true);
 const permissionAllowed = permissionAllowedMidi;
 const permissionPrompt = permissionPromptMidi;
@@ -247,9 +256,10 @@ const midiDialogRef = ref(null);
 const globalKeyDialogRef = ref(null);
 const infoDialogRef = ref(null);
 const changelogDialogRef = ref(null);
-const feedbackDialogRef = ref(null);
 const padDeleteDialogRef = ref(null);
-const feedbackPromptScheduled = ref(false);
+const boardViewRef = ref(null);
+const midiWarningRef = ref(null);
+const toastRef = ref(null);
 
 const currentPadIndex = ref(0);
 const deleteConfirmIndex = ref(null);
@@ -295,41 +305,38 @@ const globalScaleNotes = computed(() => {
   }
 });
 
-const GLOBAL_SCALE_KEY = "chordboard:global-scale";
-
-// Load global scale settings from localStorage
-function loadGlobalScaleSettings() {
-  try {
-    const raw = localStorage.getItem(GLOBAL_SCALE_KEY);
-    if (!raw) return;
-    const obj = JSON.parse(raw);
-    if (obj && typeof obj === "object") {
-      if (obj.scale) globalScale.value = obj.scale;
-      if (obj.type) globalScaleType.value = obj.type;
-      if (typeof obj.enabled === "boolean")
-        globalScaleEnabled.value = obj.enabled;
-    }
-  } catch {}
+// Load all local state from the active board in one shot.
+// Always call this instead of loadGlobalScaleSettings/loadPads individually
+// to keep pads and scale in sync with the board.
+function loadActiveBoardState() {
+  const board = activeBoard.value;
+  if (!board) return;
+  if (board.scale) {
+    if (board.scale.root) globalScale.value = board.scale.root;
+    if (board.scale.type) globalScaleType.value = board.scale.type;
+    if (typeof board.scale.enabled === "boolean")
+      globalScaleEnabled.value = board.scale.enabled;
+  }
+  if (Array.isArray(board.pads)) {
+    pads.value = board.pads.map((p) =>
+      p ? { ...createDefaultPad(), ...p } : createDefaultPad(),
+    );
+  }
 }
 
-// Save global scale settings to localStorage
+// Save global scale settings to active board
 function saveGlobalScaleSettings() {
-  try {
-    localStorage.setItem(
-      GLOBAL_SCALE_KEY,
-      JSON.stringify({
-        scale: globalScale.value,
-        type: globalScaleType.value,
-        enabled: globalScaleEnabled.value,
-      }),
-    );
-  } catch {}
+  updateActiveBoardScale({
+    root: globalScale.value,
+    type: globalScaleType.value,
+    enabled: globalScaleEnabled.value,
+  });
 }
 
 function openEditDialog(idx) {
   clearVisualDisplay();
   currentPadIndex.value = idx;
-  editDialogRef.value?.open?.();
+  boardViewRef.value?.openEditDialog(idx);
 }
 
 function openMidiDialog() {
@@ -346,7 +353,7 @@ function closeMidiDialog() {
 
 function openGlobalKeyDialog() {
   clearVisualDisplay();
-  globalKeyDialogRef.value?.open?.();
+  boardViewRef.value?.openGlobalKeyDialog();
 }
 
 function onCloseGlobalKey() {}
@@ -360,25 +367,25 @@ function onCloseInfo() {}
 
 function onCloseChangelog() {
   // Do nothing when closed normally (will show again next time)
-  maybeShowFeedbackPrompt();
 }
 
 function onDismissChangelog() {
   // Mark as seen ONLY when explicitly dismissed
   const latestVersion = changelog[0]?.version;
   if (latestVersion) {
-    localStorage.setItem(CHANGELOG_KEY, latestVersion);
+    try {
+      localStorage.setItem(CHANGELOG_KEY, latestVersion);
+    } catch (e) {
+      console.warn("Failed to save changelog seen state:", e);
+    }
   }
-  maybeShowFeedbackPrompt();
 }
 
 const CHANGELOG_KEY = "chordboard:changelog-seen";
-const FEEDBACK_KEY = "chordboard:feedback-dismissed";
-const FEEDBACK_FORM_URL = "https://forms.gle/TajVcezBtj3tN3qu9";
 
 function checkChangelog() {
   const latestVersion = changelog[0]?.version;
-  if (!latestVersion) return false;
+  if (!latestVersion) return;
 
   const seenVersion = localStorage.getItem(CHANGELOG_KEY);
   if (seenVersion !== latestVersion) {
@@ -387,32 +394,12 @@ function checkChangelog() {
     setTimeout(() => {
       changelogDialogRef.value?.open?.();
     }, 500);
-    return true;
   }
-  return false;
-}
-
-function onCloseFeedback() {
-  // Keep showing in future sessions unless explicitly dismissed.
-}
-
-function onDismissFeedback() {
-  localStorage.setItem(FEEDBACK_KEY, "1");
-}
-
-function maybeShowFeedbackPrompt() {
-  if (feedbackPromptScheduled.value) return;
-  if (localStorage.getItem(FEEDBACK_KEY) === "1") return;
-
-  feedbackPromptScheduled.value = true;
-  setTimeout(() => {
-    feedbackDialogRef.value?.open?.();
-  }, 450);
 }
 
 function requestDeletePad(idx) {
   deleteConfirmIndex.value = idx;
-  padDeleteDialogRef.value?.open?.();
+  boardViewRef.value?.openPadDeleteDialog();
 }
 
 function resetDeleteDialogState() {
@@ -420,7 +407,7 @@ function resetDeleteDialogState() {
 }
 
 function cancelDeletePad() {
-  padDeleteDialogRef.value?.close?.();
+  boardViewRef.value?.closePadDeleteDialog();
   resetDeleteDialogState();
 }
 
@@ -439,9 +426,9 @@ function confirmDeletePad() {
   if (pad && pad.mode !== "unassigned" && pad.assigned !== false) {
     onStopPad(idx, pad, null);
   }
-  pads.value.splice(idx, 1, defaultPad());
+  pads.value.splice(idx, 1, createDefaultPad());
   savePads();
-  padDeleteDialogRef.value?.close?.();
+  boardViewRef.value?.closePadDeleteDialog();
   resetDeleteDialogState();
 }
 
@@ -492,7 +479,9 @@ function saveGlobalKey({ scale, type, enabled }) {
     );
     if (hasAffected) {
       pads.value = pads.value.map((p) =>
-        p && p.mode === "scale" && p.assigned !== false ? defaultPad() : p,
+        p && p.mode === "scale" && p.assigned !== false
+          ? createDefaultPad()
+          : p,
       );
       savePads();
     }
@@ -501,6 +490,58 @@ function saveGlobalKey({ scale, type, enabled }) {
   globalScaleType.value = type;
   globalScaleEnabled.value = enabled;
   saveGlobalScaleSettings();
+}
+
+// Board management handlers
+function onSelectBoard(boardId) {
+  savedListScroll.value = getListScrollTarget()?.scrollTop ?? 0;
+  viewTransitionName.value = "view-push-forward";
+  setActiveBoard(boardId);
+  loadActiveBoardState();
+  showListView.value = false;
+}
+
+function goBackToList() {
+  viewTransitionName.value = "view-push-back";
+  showListView.value = true;
+}
+
+function onViewAfterEnter() {
+  if (showListView.value) {
+    const target = getListScrollTarget();
+    if (target) target.scrollTop = savedListScroll.value;
+  }
+}
+
+function getListScrollTarget() {
+  const panel = listPanelRef.value;
+  if (!panel) return null;
+  return panel.querySelector(".board-list") || panel;
+}
+
+function onCreateBoard() {
+  const existing = allBoards.value;
+  let num = existing.length + 1;
+  const usedNames = new Set(existing.map((b) => b.name));
+  while (usedNames.has(`Board ${num}`)) num++;
+  const board = createBoard(`Board ${num}`);
+  onSelectBoard(board.id);
+}
+
+function onDuplicateBoard(boardId) {
+  duplicateBoard(boardId);
+}
+
+function onDeleteBoard(boardId) {
+  deleteBoard(boardId);
+  // If we deleted the active board and there are still boards left
+  if (activeBoard.value) {
+    loadActiveBoardState();
+  }
+}
+
+function onRenameBoard(boardId, newName) {
+  renameBoard(boardId, newName);
 }
 
 function rescanMidi() {
@@ -564,75 +605,11 @@ function clearVisualDisplay() {
 }
 
 const PAD_COUNT = 12;
-const PADS_KEY = "chordboard:pads";
+const DEFAULT_ATTACK = 0.75;
 
-function defaultPad() {
-  return {
-    mode: "unassigned",
-    assigned: false,
-    scale: {
-      degree: "1",
-      octave: 4,
-      extension: DEFAULT_EXTENSION,
-      inversion: "root",
-      voicing: "close",
-    },
-    free: {
-      root: "C",
-      type: "major",
-      accidental: null,
-      octave: 4,
-      extension: DEFAULT_EXTENSION,
-      inversion: "root",
-      voicing: "close",
-    },
-    settings: {
-      x: "none",
-      y: "none",
-    },
-  };
-}
-
-const pads = ref(Array.from({ length: PAD_COUNT }, defaultPad));
-
-function loadPads() {
-  try {
-    const raw = localStorage.getItem(PADS_KEY);
-    const parsed = JSON.parse(raw || "null");
-    if (Array.isArray(parsed)) {
-      // 1. Load what fits normally
-      const nextPads = pads.value.map((p, i) =>
-        parsed[i] ? { ...defaultPad(), ...parsed[i] } : p,
-      );
-
-      // 2. Identify overflow pads that are assigned
-      const overflow = parsed
-        .slice(PAD_COUNT)
-        .filter((p) => p && p.mode !== "unassigned" && p.assigned !== false);
-
-      // 3. Try to place overflow pads into empty slots (unassigned) in the new grid
-      if (overflow.length > 0) {
-        let overflowIndex = 0;
-        for (let i = 0; i < nextPads.length; i++) {
-          if (overflowIndex >= overflow.length) break;
-          // If this slot is unassigned, fill it
-          if (
-            nextPads[i].mode === "unassigned" ||
-            nextPads[i].assigned === false
-          ) {
-            nextPads[i] = { ...defaultPad(), ...overflow[overflowIndex] };
-            overflowIndex++;
-          }
-        }
-      }
-      pads.value = nextPads;
-    }
-  } catch {}
-}
+const pads = ref(Array.from({ length: PAD_COUNT }, createDefaultPad));
 function savePads() {
-  try {
-    localStorage.setItem(PADS_KEY, JSON.stringify(pads.value));
-  } catch {}
+  updateActiveBoardPads(pads.value);
 }
 
 onMounted(() => {
@@ -642,11 +619,14 @@ onMounted(() => {
       typeof navigator.requestMIDIAccess === "function"),
   );
   updatePermissionStatus();
-  loadGlobalScaleSettings();
-  loadPads();
-  const changelogScheduled = checkChangelog();
-  if (!changelogScheduled) {
-    maybeShowFeedbackPrompt();
+
+  // Load boards (handles migration from legacy format)
+  loadBoards();
+
+  checkChangelog();
+
+  if (showMidiWarningButton.value) {
+    midiWarningRef.value?.showPopover();
   }
 });
 
@@ -676,6 +656,35 @@ const showMidiWarningButton = computed(() => {
   return !hasMidiOutputs.value;
 });
 
+function closeMidiWarning() {
+  midiWarningRef.value?.hidePopover();
+}
+
+watch(
+  toastMessage,
+  (msg) => {
+    if (msg) {
+      toastRef.value?.showPopover();
+    } else {
+      toastRef.value?.hidePopover();
+    }
+  },
+  { flush: "post" },
+);
+
+// Drive show/hide via the warning condition
+watch(
+  showMidiWarningButton,
+  (visible) => {
+    if (visible) {
+      midiWarningRef.value?.showPopover();
+    } else {
+      midiWarningRef.value?.hidePopover();
+    }
+  },
+  { flush: "post" },
+);
+
 const midiWarningLabel = computed(() => {
   if (!midiSupported.value) return "Your browser does not support Web MIDI";
   if (!midiEnabled.value) return "MIDI is not enabled";
@@ -697,41 +706,78 @@ watch(
   async (p) => {
     if (p === "granted" && midiSupported.value && !midiEnabled.value) {
       try {
-        // Auto-connect if MIDI was connected in the last session
+        // Auto-connect if MIDI was connected in the last session.
+        // connectMidi() calls applySavedMidiSettings() internally.
         if (midiWasConnected.value) {
           await connectMidi();
-          applySavedMidiSettings();
         }
-      } catch {}
+      } catch (e) {
+        console.error("Failed to auto-connect MIDI:", e);
+      }
     }
   },
   { immediate: false },
 );
 
+// Safety net: if midiEnabled is cleared externally, ensure WebMidi is torn down.
+// applySavedMidiSettings is intentionally NOT called here — connectMidi() handles it.
 watch(
   () => midiEnabled.value,
   (enabled) => {
-    if (enabled) {
-      applySavedMidiSettings();
-    } else {
+    if (!enabled) {
       disconnectMidi();
     }
   },
   { immediate: true },
 );
 
+watch(
+  listPanelRef,
+  () => {
+    if (listScrollTargetRef.value && listScrollHandlerRef.value) {
+      listScrollTargetRef.value.removeEventListener(
+        "scroll",
+        listScrollHandlerRef.value,
+      );
+    }
+
+    const target = getListScrollTarget();
+    listScrollTargetRef.value = target;
+    if (!target) return;
+
+    target.scrollTop = savedListScroll.value;
+    const onListScroll = () => {
+      savedListScroll.value = target.scrollTop;
+    };
+    listScrollHandlerRef.value = onListScroll;
+    target.addEventListener("scroll", onListScroll, { passive: true });
+  },
+  { flush: "post" },
+);
+
+onBeforeUnmount(() => {
+  if (listScrollTargetRef.value && listScrollHandlerRef.value) {
+    listScrollTargetRef.value.removeEventListener(
+      "scroll",
+      listScrollHandlerRef.value,
+    );
+  }
+});
+
 function saveEdit(snapshot) {
   try {
     const idx = Number(currentPadIndex.value) || 0;
-    const next = { ...defaultPad(), ...snapshot, assigned: true };
+    const next = { ...createDefaultPad(), ...snapshot, assigned: true };
     pads.value.splice(idx, 1, next);
     savePads();
-  } catch {}
+  } catch (e) {
+    console.error("Failed to save pad edit:", e);
+  }
   closeEdit();
 }
 
 function closeEdit() {
-  editDialogRef.value?.close?.();
+  boardViewRef.value?.closeEditDialog();
 }
 
 // Build chord label and notes from pad state
@@ -970,14 +1016,36 @@ function padButtonLabelHtml(pad) {
   );
 }
 
+function padNoteLabel(pad) {
+  const notes = padNotes(pad);
+  if (!notes.length) return "";
+  return notes
+    .map((note) =>
+      formatNoteName(
+        simplifyNoteName(note),
+        preferredGlobalScaleRoot.value,
+        globalScaleType.value,
+      ),
+    )
+    .join(" ");
+}
+
 import { reactive } from "vue";
 const activePadNotes = reactive({});
+const activeNoteVelocities = reactive({}); // {[padIdx]: {[noteStr]: velocity}}
 
 const padTimers = reactive({});
 const padSchedules = reactive({});
+const padVisualReleaseTimers = reactive({});
+const VISUAL_RELEASE_MS = 120;
 
 function onStartPad(idx, e, coords) {
   try {
+    if (padVisualReleaseTimers[idx]) {
+      clearTimeout(padVisualReleaseTimers[idx]);
+      padVisualReleaseTimers[idx] = null;
+    }
+
     // Clear any existing state for this pad
     if (padTimers[idx]) {
       padTimers[idx].forEach((id) => clearTimeout(id));
@@ -996,7 +1064,7 @@ function onStartPad(idx, e, coords) {
     if (!ch) return;
 
     // Calculate start parameters
-    let baseVelocity = 0.75;
+    let baseVelocity = DEFAULT_ATTACK;
     let strumDuration = 0;
     let humanizeAmount = 0;
     let tiltAmount = 0;
@@ -1023,7 +1091,8 @@ function onStartPad(idx, e, coords) {
       processAxis(coords.y, settings.y);
     }
 
-    activePadNotes[idx] = notes.slice();
+    // Keep current highlights until explicit release to avoid flicker on rapid retriggers.
+    if (!Array.isArray(activePadNotes[idx])) activePadNotes[idx] = [];
     lastPlayedNotes.value = notes.slice(); // Remember last played chord
 
     const now = WebMidi.time;
@@ -1078,6 +1147,15 @@ function onStartPad(idx, e, coords) {
         try {
           // Use precise MIDI time
           ch.playNote(n, { attack: vel, time: noteTime });
+          if (!Array.isArray(activePadNotes[idx])) activePadNotes[idx] = [];
+          if (!activePadNotes[idx].includes(n)) {
+            activePadNotes[idx] = [...activePadNotes[idx], n];
+          }
+          if (!activeNoteVelocities[idx]) activeNoteVelocities[idx] = {};
+          activeNoteVelocities[idx] = {
+            ...activeNoteVelocities[idx],
+            [n]: vel,
+          };
           // Track that we sent this note to the driver
           padSchedules[idx].push({ note: n, time: noteTime });
         } catch {}
@@ -1102,7 +1180,9 @@ function onStartPad(idx, e, coords) {
       sendContinuousExpression(ch, settings.x, coords.x);
       sendContinuousExpression(ch, settings.y, coords.y);
     }
-  } catch {}
+  } catch (e) {
+    console.error("Failed to start pad:", e);
+  }
 }
 
 function onUpdatePad(idx, coords) {
@@ -1116,7 +1196,9 @@ function onUpdatePad(idx, coords) {
     const settings = pad.settings || { x: "none", y: "none" };
     sendContinuousExpression(ch, settings.x, coords.x);
     sendContinuousExpression(ch, settings.y, coords.y);
-  } catch {}
+  } catch (e) {
+    console.warn("Failed to send continuous expression:", e);
+  }
 }
 
 function sendContinuousExpression(ch, func, value) {
@@ -1124,7 +1206,9 @@ function sendContinuousExpression(ch, func, value) {
     // Send channel aftertouch
     try {
       ch.setChannelAftertouch(value);
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to send aftertouch:", e);
+    }
   }
 }
 
@@ -1160,7 +1244,9 @@ function onStopPad(idx) {
           // Schedule stop at least 20ms after start, or now, whichever is later
           const stopTime = Math.max(now, item.time + 20);
           ch.stopNote(item.note, { time: stopTime });
-        } catch {}
+        } catch (e) {
+          console.warn("Failed to stop note:", item.note, e);
+        }
       });
 
       // Legacy cleanup for any notes not in our schedule list (safety net)
@@ -1168,13 +1254,23 @@ function onStopPad(idx) {
         if (!handledNotes.has(n)) {
           try {
             ch.stopNote(n);
-          } catch {}
+          } catch (e) {
+            console.warn("Failed to stop fallback note:", n, e);
+          }
         }
       });
     }
-  } catch {
+  } catch (e) {
+    console.error("Failed to stop pad:", e);
   } finally {
-    activePadNotes[idx] = [];
+    if (padVisualReleaseTimers[idx]) {
+      clearTimeout(padVisualReleaseTimers[idx]);
+    }
+    padVisualReleaseTimers[idx] = setTimeout(() => {
+      activePadNotes[idx] = [];
+      activeNoteVelocities[idx] = {};
+      padVisualReleaseTimers[idx] = null;
+    }, VISUAL_RELEASE_MS);
     padSchedules[idx] = [];
   }
 }
@@ -1182,6 +1278,31 @@ function onStopPad(idx) {
 const activePreviewNotes = ref([]);
 // Track the last played chord to keep it visible on keyboard
 const lastPlayedNotes = ref([]);
+
+// Notes that are currently sounding right now (pads + preview).
+const currentlyPlayingNoteNames = computed(() => {
+  const fromPads = Object.values(activePadNotes).flatMap((arr) =>
+    Array.isArray(arr) ? arr : [],
+  );
+  const fromPreview = Array.isArray(activePreviewNotes.value)
+    ? activePreviewNotes.value
+    : [];
+  return simplifyNoteList([...fromPads, ...fromPreview]);
+});
+
+// Velocity map for currently playing notes (used for visual brightness on keyboard)
+const noteVelocityMap = computed(() => {
+  const map = {};
+  for (const padVels of Object.values(activeNoteVelocities)) {
+    if (padVels && typeof padVels === "object") {
+      Object.assign(map, padVels);
+    }
+  }
+  for (const n of activePreviewNotes.value || []) {
+    map[n] = DEFAULT_ATTACK;
+  }
+  return map;
+});
 
 function onPreviewStart(payload) {
   try {
@@ -1193,15 +1314,18 @@ function onPreviewStart(payload) {
     if (!ch) return;
     activePreviewNotes.value = notes.slice();
     try {
-      ch.playNote(notes);
-    } catch {
+      ch.playNote(notes, { attack: DEFAULT_ATTACK });
+    } catch (e) {
+      console.warn("Batch playNote failed, retrying individually:", e);
       for (const n of notes) {
         try {
-          ch.playNote(n);
+          ch.playNote(n, { attack: DEFAULT_ATTACK });
         } catch {}
       }
     }
-  } catch {}
+  } catch (e) {
+    console.error("Failed to start preview:", e);
+  }
 }
 
 function onPreviewStop() {
@@ -1212,14 +1336,16 @@ function onPreviewStop() {
     if (!ch) return;
     try {
       ch.stopNote(activePreviewNotes.value);
-    } catch {
+    } catch (e) {
+      console.warn("Batch stopNote failed, retrying individually:", e);
       for (const n of activePreviewNotes.value) {
         try {
           ch.stopNote(n);
         } catch {}
       }
     }
-  } catch {
+  } catch (e) {
+    console.error("Failed to stop preview:", e);
   } finally {
     activePreviewNotes.value = [];
   }
@@ -1238,17 +1364,6 @@ const activeNoteNames = computed(() => {
     return simplifyNoteList(lastPlayedNotes.value);
   }
   return simplifyNoteList(fromPads);
-});
-
-// Active keys as a Set of lowercase pitch-class tokens for Keyboard.vue
-const activeKeySet = computed(() => {
-  const set = new Set();
-  for (const n of activeNoteNames.value) {
-    const info = Note.get(n);
-    const token = pcToKeyToken(info?.pc);
-    if (token) set.add(token);
-  }
-  return set;
 });
 
 // Human-friendly now playing line

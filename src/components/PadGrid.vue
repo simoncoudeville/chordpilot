@@ -25,7 +25,9 @@
         @contextmenu.prevent
         :aria-label="`Pad ${idx + 1}: ${padButtonLabelHtml(pad)}`"
       >
-        <span>{{ padButtonLabelHtml(pad) }}</span>
+        <span class="pad-content">
+          <span class="pad-title">{{ padButtonLabelHtml(pad) }}</span>
+        </span>
       </button>
       <div
         class="pad-buttons"
@@ -71,6 +73,7 @@ const props = defineProps({
   permissionAllowed: { type: Boolean, default: false },
   midiEnabled: { type: Boolean, default: false },
   padButtonLabelHtml: { type: Function, required: false, default: () => "" },
+  padNoteLabel: { type: Function, required: false, default: () => "" },
 });
 
 const emit = defineEmits(["start-pad", "stop-pad", "update-pad", "edit"]);

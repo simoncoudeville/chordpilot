@@ -1,5 +1,8 @@
 import { ref, computed } from "vue";
 import { WebMidi } from "webmidi";
+import { useToast } from "./useToast";
+
+const { showToast } = useToast();
 
 export function useMidi() {
   const midiEnabled = ref(false);
@@ -53,7 +56,9 @@ export function useMidi() {
         selectedOutCh.value = Number(obj.channel) || 1;
         midiWasConnected.value = Boolean(obj.wasConnected);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to restore MIDI settings:", e);
+    }
   }
 
   function hasValidSavedMidiSettings() {
@@ -66,7 +71,8 @@ export function useMidi() {
       if (!obj.outputId || !(ch >= 1 && ch <= 16)) return false;
       const exists = outputs.value.find((o) => o.id === obj.outputId);
       return !!exists;
-    } catch {
+    } catch (e) {
+      console.warn("Failed to read MIDI settings:", e);
       return false;
     }
   }
@@ -81,14 +87,19 @@ export function useMidi() {
           wasConnected: midiEnabled.value,
         })
       );
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to save MIDI settings:", e);
+      showToast("Could not save MIDI settings — storage may be full.");
+    }
   }
 
   function getSelectedChannel() {
     const output = WebMidi.outputs.find((o) => o.id === selectedOutputId.value);
     if (!output) return null;
     const chNum = Number(selectedOutCh.value);
+    if (!Number.isInteger(chNum) || chNum < 1 || chNum > 16) return null;
     const ch = output.channels[chNum];
+    if (!ch) return null;
     return { ch, output, chNum };
   }
 
