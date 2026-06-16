@@ -8,7 +8,7 @@
   --font-size-sm: calc(12 / var(--font-size) * 1rem);
   --font-weight-strong: 600;
   --line-height: 20;
-  --computed-line-height: calc(var(--line-height) / var(--font-size) * 1rem);
+  --computed-line-height: calc(var(--line-height) / var(--font-size) * 1);
 
   --space-unit: calc(8 / var(--font-size) * 1rem); /* 8px */
   --space-0-5: calc(var(--space-unit) * 0.5); /* 4px */
@@ -144,7 +144,6 @@ button {
   border: none;
   padding: 0;
   font: inherit;
-line-height: var(--computed-line-height);
   font-weight: var(--font-weight-strong);
   text-transform: uppercase;
   -webkit-tap-highlight-color: transparent; /* remove iOS/Android tap highlight */
