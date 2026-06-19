@@ -156,16 +156,18 @@
         />
       </div>
       <div class="dialog-buttons">
-        <button class="button" type="button" @click="closeRenameDialog">
-          Cancel
-        </button>
-        <button
-          class="button button-primary"
-          type="button"
-          @click="confirmRename"
-        >
-          Rename
-        </button>
+        <div class="dialog-buttons-right">
+          <button class="button" type="button" @click="closeRenameDialog">
+            Cancel
+          </button>
+          <button
+            class="button button-primary"
+            type="button"
+            @click="confirmRename"
+          >
+            Rename
+          </button>
+        </div>
       </div>
     </form>
   </dialog>
@@ -199,16 +201,18 @@
         <p class="color-meta">This action cannot be undone.</p>
       </div>
       <div class="dialog-buttons">
-        <button class="button" type="button" @click="closeDeleteDialog">
-          Cancel
-        </button>
-        <button
-          class="button button-primary"
-          type="button"
-          @click="confirmDelete"
-        >
-          Delete
-        </button>
+        <div class="dialog-buttons-right">
+          <button class="button" type="button" @click="closeDeleteDialog">
+            Cancel
+          </button>
+          <button
+            class="button button-danger"
+            type="button"
+            @click="confirmDelete"
+          >
+            Delete board
+          </button>
+        </div>
       </div>
     </form>
   </dialog>

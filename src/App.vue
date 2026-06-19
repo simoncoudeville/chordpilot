@@ -398,6 +398,7 @@ function confirmDeletePad() {
   }
   pads.value.splice(idx, 1, createDefaultPad());
   savePads();
+  closeEdit();
   routeViewRef.value?.closePadDeleteDialog?.();
   resetDeleteDialogState();
 }

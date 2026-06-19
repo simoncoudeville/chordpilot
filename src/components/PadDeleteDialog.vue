@@ -23,10 +23,12 @@
         <p class="color-meta">{{ props.message }}</p>
       </div>
       <div class="dialog-buttons">
-        <button class="button" type="button" @click="onCancel">Cancel</button>
-        <button class="button button-primary" type="button" @click="onConfirm">
-          Remove chord
-        </button>
+        <div class="dialog-buttons-right">
+          <button class="button" type="button" @click="onCancel">Cancel</button>
+          <button class="button button-danger" type="button" @click="onConfirm">
+            Remove chord
+          </button>
+        </div>
       </div>
     </form>
   </dialog>
@@ -39,7 +41,8 @@ import { X } from "lucide-vue-next";
 const props = defineProps({
   message: {
     type: String,
-    default: "Are you sure you want to remove this pad's chord?",
+    default:
+      "Are you sure you want to remove this pad's chord? This action cannot be undone.",
   },
 });
 

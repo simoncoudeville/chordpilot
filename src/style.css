@@ -42,6 +42,7 @@
   /* Converted to OKLCH for perceptual uniformity; hex kept as comment fallback */
   --color-warning: oklch(0.8 0.17 60);
   --color-valid: oklch(80% 0.17 140);
+  --color-danger: oklch(0.65 0.2 25);
 
   --color-layer-0: var(--color-gray-050);
   --color-layer-1: var(--color-gray-200);
@@ -257,6 +258,28 @@ button {
   }
 }
 
+.button-warning {
+  color: var(--color-warning);
+  padding: var(--space-1-5) var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
+
+  svg {
+    stroke: var(--color-warning);
+  }
+}
+
+.button-danger {
+  color: var(--color-danger);
+  background-color: hsl(from var(--color-danger) h s l / 0.2);
+
+  svg {
+    stroke: var(--color-danger);
+  }
+}
+
 .icon-button {
   padding: var(--space-1);
   display: flex;
@@ -288,19 +311,6 @@ button {
   display: flex;
   opacity: 1;
   transform: translateY(0);
-}
-
-.button-warning {
-  color: var(--color-warning);
-  padding: var(--space-1-5) var(--space-2);
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  white-space: nowrap;
-
-  svg {
-    stroke: var(--color-warning);
-  }
 }
 
 .popover-close {
@@ -414,7 +424,12 @@ dialog:open {
 .dialog-buttons {
   padding: 0 var(--space-2-5);
   display: flex;
-  justify-content: flex-end;
+}
+
+.dialog-buttons-right {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
 }
 
 .app-bar {

@@ -1,5 +1,12 @@
 export const changelog = [
   {
+    version: "1.3.1",
+    date: "2026-06-19",
+    title: "Safer Pad Removal",
+    description:
+      "Remove chord has moved into the pad settings dialog, so you won't accidentally hit it while playing.",
+  },
+  {
     version: "1.3.0",
     date: "2026-04-01",
     title: "Multiple Boards",

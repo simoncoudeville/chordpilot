@@ -41,9 +41,11 @@
       </div>
 
       <div class="dialog-buttons">
-        <button class="button button-primary" @click="onDismiss">
-          Don't show again
-        </button>
+        <div class="dialog-buttons-right">
+          <button class="button button-primary" @click="onDismiss">
+            Don't show again
+          </button>
+        </div>
       </div>
     </form>
   </dialog>

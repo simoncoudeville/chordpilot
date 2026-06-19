@@ -35,20 +35,6 @@
       >
         <button
           class="pad-edit"
-          @click="$emit('delete', idx)"
-          :aria-label="`Delete pad ${idx + 1}`"
-        >
-          <Minus
-            class="pad-delete-icon"
-            aria-hidden="true"
-            :stroke-width="1.25"
-            :size="16"
-            :absoluteStrokeWidth="true"
-          />
-          <span class="sr-only">Delete</span>
-        </button>
-        <button
-          class="pad-edit"
           @click="$emit('edit', idx)"
           :aria-label="`Edit pad ${idx + 1}`"
         >
@@ -67,7 +53,7 @@
 </template>
 
 <script setup>
-import { Bolt, Minus } from "lucide-vue-next";
+import { Bolt } from "lucide-vue-next";
 const props = defineProps({
   pads: { type: Array, required: true },
   permissionAllowed: { type: Boolean, default: false },

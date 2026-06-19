@@ -225,15 +225,25 @@
       </div>
 
       <div class="dialog-buttons">
-        <button class="button" type="button" @click="onClose">Cancel</button>
         <button
-          class="button button-primary"
+          v-if="padState?.assigned !== false && padState?.mode !== 'unassigned'"
+          class="button button-danger"
           type="button"
-          @click="$emit('save', buildPadSnapshot())"
-          :disabled="!isDirty"
+          @click="onDelete"
         >
-          Save
+          Remove chord
         </button>
+        <div class="dialog-buttons-right">
+          <button class="button" type="button" @click="onClose">Cancel</button>
+          <button
+            class="button button-primary"
+            type="button"
+            @click="$emit('save', buildPadSnapshot())"
+            :disabled="!isDirty"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </form>
   </dialog>
@@ -278,7 +288,13 @@ const props = defineProps({
 });
 
 // Declare emits used in template to avoid warnings
-const emit = defineEmits(["save", "close", "preview-start", "preview-stop"]);
+const emit = defineEmits([
+  "save",
+  "close",
+  "delete",
+  "preview-start",
+  "preview-stop",
+]);
 
 const dlg = ref(null);
 const isPreviewPressed = ref(false);
@@ -1052,6 +1068,10 @@ function onClose() {
   emit("preview-stop");
   emit("close");
   close();
+}
+
+function onDelete() {
+  emit("delete");
 }
 
 function resetToDefaults() {

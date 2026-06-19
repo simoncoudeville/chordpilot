@@ -61,6 +61,7 @@
     @preview-stop="$emit('preview-stop')"
     @save="$emit('save-edit', $event)"
     @close="$emit('close-edit')"
+    @delete="$emit('delete', padIndex)"
   />
   <GlobalKeyDialog
     ref="globalKeyDialogRef"

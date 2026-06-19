@@ -93,15 +93,17 @@
         to Free mode.
       </div>
       <div class="dialog-buttons">
-        <button class="button" type="button" @click="onClose">Cancel</button>
-        <button
-          class="button button-primary"
-          type="button"
-          @click="onSave"
-          :disabled="!isDirty"
-        >
-          Save
-        </button>
+        <div class="dialog-buttons-right">
+          <button class="button" type="button" @click="onClose">Cancel</button>
+          <button
+            class="button button-primary"
+            type="button"
+            @click="onSave"
+            :disabled="!isDirty"
+          >
+            Save
+          </button>
+        </div>
       </div>
     </form>
   </dialog>
