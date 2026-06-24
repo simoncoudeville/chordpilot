@@ -888,13 +888,13 @@ dialog:open {
   --checkbox-toggle-padding: calc(var(--space-unit) * 0.25);
   --checkbox-toggle-padding: 1px;
   --checkbox-toggle-height: var(--space-2-5);
-  --checkbox-toggle-width: calc(var(--space-1) * 4);
-  --checkbox-toggle-radius: 4px;
+  --checkbox-toggle-width: calc(var(--space-1) * 4.25);
+  --checkbox-toggle-radius: var(--radius);
   display: inline-block;
   width: var(--checkbox-toggle-width);
   height: var(--checkbox-toggle-height);
   padding: var(--checkbox-toggle-padding);
-  border-radius: 4px;
+  border-radius: var(--checkbox-toggle-radius);
   background-color: var(--color-layer-1);
   transition: all 0.1s ease;
 
