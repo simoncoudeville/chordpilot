@@ -886,32 +886,43 @@ dialog:open {
 
 .checkbox-toggle {
   --checkbox-toggle-padding: calc(var(--space-unit) * 0.25);
+  --checkbox-toggle-padding: 1px;
+  --checkbox-toggle-height: var(--space-2-5);
+  --checkbox-toggle-width: calc(var(--space-1) * 4);
+  --checkbox-toggle-radius: 4px;
   display: inline-block;
-  width: calc(var(--space-1) * 5);
-  height: var(--space-3);
+  width: var(--checkbox-toggle-width);
+  height: var(--checkbox-toggle-height);
   padding: var(--checkbox-toggle-padding);
-  border-radius: 9999rem;
-  /* border: 1px solid var(--color-border); */
+  border-radius: 4px;
   background-color: var(--color-layer-1);
   transition: all 0.1s ease;
 
   &::after {
+    --checkbox-toggle-switch-width: calc(
+      var(--checkbox-toggle-height) - var(--checkbox-toggle-padding) * 2
+    );
     content: "";
     display: block;
-    width: var(--space-2);
+    /* width: var(--space-2); */
+    width: var(--checkbox-toggle-switch-width);
     aspect-ratio: 1;
-    border-radius: 100%;
+    border-radius: calc(
+      var(--checkbox-toggle-radius) - var(--checkbox-toggle-padding)
+    );
     background-color: var(--color-layer-0);
     transition: all 0.1s ease;
-    translate: var(--checkbox-toggle-padding) var(--checkbox-toggle-padding);
+    /* translate: var(--checkbox-toggle-padding) var(--checkbox-toggle-padding); */
   }
 
   .checkbox-hidden:checked + & {
     background-color: var(--color-text);
     &::after {
       background-color: var(--color-layer-0);
-      translate: calc(100% - calc(var(--checkbox-toggle-padding) * 2));
-      width: var(--space-2-5);
+      translate: calc(
+        var(--checkbox-toggle-width) - var(--checkbox-toggle-switch-width) -
+          var(--checkbox-toggle-padding) * 2
+      );
     }
   }
 }
