@@ -895,7 +895,7 @@ dialog:open {
   height: var(--checkbox-toggle-height);
   padding: var(--checkbox-toggle-padding);
   border-radius: var(--checkbox-toggle-radius);
-  background-color: var(--color-layer-1);
+  background-color: var(--color-layer-2);
   transition: all 0.1s ease;
 
   &::after {
